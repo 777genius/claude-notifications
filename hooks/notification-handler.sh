@@ -168,13 +168,13 @@ main() {
   # Send desktop notification
   if [[ "$desktop_enabled" == "true" ]]; then
     log_debug "Sending desktop notification..."
-    send_notification "$status_title" "$summary" "$cwd"
+    send_notification "$status_title" "$summary" "$cwd" || true
     log_debug "Desktop notification sent"
 
     # Play sound if configured
     if [[ -n "$sound_file" ]] && [[ -f "$sound_file" ]]; then
       log_debug "Playing sound: $sound_file"
-      play_sound "$sound_file" "$config"
+      play_sound "$sound_file" "$config" || true
       log_debug "Sound playback initiated"
     else
       log_debug "Sound file not found or not configured: $sound_file"
@@ -184,12 +184,12 @@ main() {
   # Send webhook notification
   if [[ "$webhook_enabled" == "true" ]]; then
     log_debug "Sending webhook notification..."
-    send_webhook "$status" "$summary" "$session_id" "$config"
+    send_webhook "$status" "$summary" "$session_id" "$config" || true
     log_debug "Webhook sent"
   fi
 
   # Cleanup старых lock-файлов (старше 60 секунд)
-  cleanup_old_files "$TEMP_DIR" "claude-notification-*.lock" 60
+  cleanup_old_files "$TEMP_DIR" "claude-notification-*.lock" 60 || true
 
   log_debug "=== Notification handler completed successfully ==="
   # Exit successfully (don't block Claude)
