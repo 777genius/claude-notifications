@@ -34,7 +34,7 @@ simulate_hook_process() {
   local LOCK_FILE="${TEMP_DIR}/claude-notification-test-${event}-${session_id}.lock"
 
   # Phase 1: Early duplicate detection
-  if [[ $delay_before_check -gt 0 ]]; then
+  if [[ -n "$delay_before_check" ]] && [[ "$delay_before_check" != "0" ]]; then
     sleep "$delay_before_check"
   fi
 
@@ -56,7 +56,7 @@ simulate_hook_process() {
   fi
 
   # Phase 2: Final check and lock creation
-  if [[ $delay_before_lock -gt 0 ]]; then
+  if [[ -n "$delay_before_lock" ]] && [[ "$delay_before_lock" != "0" ]]; then
     sleep "$delay_before_lock"
   fi
 

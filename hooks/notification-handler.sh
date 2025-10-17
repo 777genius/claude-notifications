@@ -21,7 +21,7 @@ error_handler() {
 
 trap 'error_handler ${LINENO}' ERR
 
-set -euo pipefail
+set -eu
 
 # Source all library functions
 source "${PLUGIN_DIR}/lib/platform.sh"

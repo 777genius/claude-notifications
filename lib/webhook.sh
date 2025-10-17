@@ -55,6 +55,9 @@ send_webhook_async() {
   if [[ "$headers" != "{}" ]] && [[ -n "$headers" ]]; then
     # Extract header names and values into array
     while IFS= read -r header_line; do
+      # Remove trailing CR/LF (Windows compatibility)
+      header_line="${header_line%$'\r'}"
+      header_line="${header_line%$'\n'}"
       if [[ -n "$header_line" ]]; then
         curl_header_args+=(-H "$header_line")
       fi

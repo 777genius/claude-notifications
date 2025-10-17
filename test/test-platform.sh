@@ -169,9 +169,16 @@ test_detect_terminal_valid_format() {
       # Should contain dots (bundle ID format)
       assert_matches "$terminal" "\\." "macOS bundle ID should contain dots"
     fi
+  elif [[ "$os" == "linux" ]]; then
+    # Linux should return linux-terminal or vscode
+    if [[ "$terminal" == "linux-terminal" ]] || [[ "$terminal" == "vscode" ]]; then
+      assert_true "true" "Linux terminal is valid: $terminal"
+    else
+      assert_true "false" "Linux should return linux-terminal/vscode, got: $terminal"
+    fi
   else
-    # Non-macOS should return "none"
-    assert_equals "$terminal" "none" "Non-macOS should return none"
+    # Windows/Unknown should return "none"
+    assert_equals "$terminal" "none" "Windows/Unknown should return none"
   fi
 }
 
