@@ -1,7 +1,7 @@
 #!/bin/bash
 # test-status-detection.sh - Unit tests for status detection state machine
 
-set -euo pipefail
+set -eu
 
 # Get test directory
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

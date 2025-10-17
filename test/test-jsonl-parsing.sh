@@ -52,7 +52,7 @@ test_extract_tools_from_transcript() {
   assert_not_empty "$tools" "Should extract tools"
 
   # Should find Write, Write, Bash
-  local tool_count=$(echo "$tools" | wc -l | tr -d ' ')
+  local tool_count=$(echo "$tools" | wc -l | tr -d '[:space:]')
   assert_equals "$tool_count" "3" "Should find 3 tools"
 }
 
@@ -182,7 +182,7 @@ test_multiple_tools_in_one_message() {
 
   local tools=$(echo "$transcript" | jq -s -r '.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .name' 2>/dev/null)
 
-  local tool_count=$(echo "$tools" | wc -l | tr -d ' ')
+  local tool_count=$(echo "$tools" | wc -l | tr -d '[:space:]')
   assert_equals "$tool_count" "2" "Should extract multiple tools from one message"
 }
 

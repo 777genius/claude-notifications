@@ -1,7 +1,7 @@
 #!/bin/bash
 # run-tests.sh - Test runner for claude-notifications plugin
 
-set -euo pipefail
+set -eu
 
 # Colors
 RED='\033[0;31m'

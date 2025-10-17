@@ -137,7 +137,7 @@ test_generate_session_name_variety() {
   done
 
   # Check that we got some variety (at least 3 different names from 5 UUIDs)
-  local unique_count=$(printf '%s\n' "${names[@]}" | sort -u | wc -l | tr -d ' ')
+  local unique_count=$(printf '%s\n' "${names[@]}" | sort -u | wc -l | tr -d '[:space:]')
 
   if [[ $unique_count -ge 3 ]]; then
     assert_true "true" "Got variety in generated names: $unique_count unique out of ${#uuids[@]}"

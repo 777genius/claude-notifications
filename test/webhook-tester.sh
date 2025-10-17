@@ -9,7 +9,7 @@
 #   ./webhook-tester.sh --preset discord --url 'https://discord.com/api/webhooks/...'
 #   ./webhook-tester.sh --preset telegram --url 'https://api.telegram.org/bot.../sendMessage' --chat-id '123456'
 
-set -euo pipefail
+set -eu
 
 # Colors
 RED='\033[0;31m'

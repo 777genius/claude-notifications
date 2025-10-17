@@ -219,7 +219,7 @@ test_send_notification_concurrent_calls() {
   wait
 
   # Should have 3 entries
-  local count=$(wc -l < "$MOCK_OUTPUT" | tr -d ' ')
+  local count=$(wc -l < "$MOCK_OUTPUT" | tr -d '[:space:]')
   assert_equals "$count" "3" "Should handle concurrent calls"
 }
 

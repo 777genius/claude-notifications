@@ -1,7 +1,7 @@
 #!/bin/bash
 # test-lock-deduplication.sh - Unit tests for lock-based deduplication logic
 
-set -euo pipefail
+set -eu
 
 # Get test directory
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,7 +89,7 @@ test_single_process_sends_notification() {
 
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
   assert_equals "1" "$notifications" "Should send exactly 1 notification"
 
   local lock_file="${TEMP_DIR}/claude-notification-test-${TEST_EVENT}-${TEST_SESSION_ID}.lock"
@@ -107,8 +107,8 @@ test_duplicate_process_exits_early() {
   # Second process (duplicate)
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
-  local duplicates=$(grep "duplicate_early" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
+  local duplicates=$(grep "duplicate_early" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   assert_equals "1" "$notifications" "Should send exactly 1 notification"
   assert_equals "1" "$duplicates" "Should detect 1 duplicate"
@@ -125,8 +125,8 @@ test_early_exit_allows_retry() {
   # Second process should continue and send
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
-  local early_exits=$(grep "early_exit" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
+  local early_exits=$(grep "early_exit" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   assert_equals "1" "$notifications" "Should send 1 notification from second process"
   assert_equals "1" "$early_exits" "First process should exit early"
@@ -141,8 +141,8 @@ test_both_early_exit_no_lock() {
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "false"
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "false"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
-  local early_exits=$(grep "early_exit" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
+  local early_exits=$(grep "early_exit" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
   local lock_file="${TEMP_DIR}/claude-notification-test-${TEST_EVENT}-${TEST_SESSION_ID}.lock"
 
   assert_equals "0" "$notifications" "Should send 0 notifications"
@@ -164,8 +164,8 @@ test_race_condition_handling() {
   wait $pid1
   wait $pid2
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
-  local duplicates_final=$(grep "duplicate_final" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
+  local duplicates_final=$(grep "duplicate_final" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   # In rare race conditions, both might send (acceptable trade-off)
   # But most of the time, one should detect duplicate at final check
@@ -190,15 +190,16 @@ test_stale_lock_cleanup() {
 
   # Create a stale lock (simulate old lock)
   touch "$lock_file"
-  # Make it look 3 seconds old (touch -t doesn't work well on macOS, so we'll just sleep)
-  # For testing, we'll manually set the time in the past
-  # On macOS: touch -A -030000 (3 seconds ago)
-  touch -A -030000 "$lock_file" 2>/dev/null || sleep 3
+  # Make it look 3 seconds old using cross-platform function
+  if ! set_file_mtime_past "$lock_file" 3; then
+    # Fallback: sleep if setting mtime fails
+    sleep 3
+  fi
 
   # New process should ignore stale lock and send
   simulate_hook_process "$TEST_SESSION_ID" "$TEST_EVENT" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   # Note: This test might fail due to sleep timing in CI
   # In real implementation, the age check should handle this
@@ -225,7 +226,7 @@ test_multiple_sessions_isolated() {
   # Send notification from session 2 (should not be blocked by session 1)
   simulate_hook_process "$session2" "$TEST_EVENT" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   assert_equals "2" "$notifications" "Each session should send its own notification"
 
@@ -250,7 +251,7 @@ test_different_events_isolated() {
   # Send notification for SubagentStop event (should not be blocked by Stop)
   simulate_hook_process "$TEST_SESSION_ID" "$event2" "true"
 
-  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d ' ')
+  local notifications=$(grep "notification_sent" "$NOTIFICATIONS_LOG" 2>/dev/null | wc -l | tr -d '[:space:]')
 
   assert_equals "2" "$notifications" "Each event should send its own notification"
 

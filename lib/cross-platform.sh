@@ -124,6 +124,43 @@ create_lock_file() {
   touch "$lock_file" 2>/dev/null || true
 }
 
+# Set file modification time to N seconds in the past
+# Args: $1 - file path, $2 - seconds in the past (default: 3)
+# Returns: 0 on success, 1 on failure
+set_file_mtime_past() {
+  local file="$1"
+  local seconds_ago="${2:-3}"
+  local os=$(detect_os)
+
+  if [[ ! -f "$file" ]]; then
+    return 1
+  fi
+
+  case "$os" in
+    macos)
+      # macOS: use touch -A (adjust access/modification time)
+      # Format: -MMDDhhmm for minutes, or -A for adjusting by seconds
+      # touch -A -SSSS adjusts by seconds (negative = past)
+      local adjustment=$(printf "%02d%04d" 0 $((seconds_ago * 100)))
+      touch -A -"$adjustment" "$file" 2>/dev/null && return 0
+      # Fallback to sleep if touch -A fails
+      ;;
+    linux)
+      # Linux: use touch -d
+      touch -d "$seconds_ago seconds ago" "$file" 2>/dev/null && return 0
+      # Fallback to sleep if touch -d fails
+      ;;
+    windows)
+      # Windows: touch -d might work in Git Bash, try it
+      touch -d "$seconds_ago seconds ago" "$file" 2>/dev/null && return 0
+      # Fallback to sleep
+      ;;
+  esac
+
+  # Fallback: sleep (less ideal for tests but works everywhere)
+  return 1
+}
+
 # Export functions
 export -f get_temp_dir
 export -f get_file_mtime
@@ -131,3 +168,4 @@ export -f get_current_timestamp
 export -f cleanup_old_files
 export -f is_file_older_than
 export -f create_lock_file
+export -f set_file_mtime_past
