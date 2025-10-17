@@ -1,0 +1,7 @@
+{
+  "notifications": {
+    "desktop": {
+      "enabled": true,
+    }
+  }
+}

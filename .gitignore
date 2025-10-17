@@ -1,0 +1,41 @@
+# Logs
+*.log
+notification-debug.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Lock files (deduplication)
+/tmp/claude-notification-*.lock
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Node modules (if any)
+node_modules/
+
+# User configuration (don't commit user-specific settings)
+config/config.json
+
+# Keep example configs
+!config/config.json.example
+!config/config.json.example-custom-sounds
+
+# Test files
+test_*.sh
+FINAL_TEST.sh
+*.txt
+demo.txt
+test123.txt
+
+# Notifier setup marker
+.notifier_setup_done
