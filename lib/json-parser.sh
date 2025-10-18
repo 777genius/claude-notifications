@@ -36,7 +36,13 @@ _json_backend() {
 _jq_expr_from_dot_path() {
   local path="$1"
   # Пример: .obj.arr.0.t → .obj.arr[0].t
-  echo "$path" | sed -E 's/\.([0-9]+)(\.|$)/[\1]\2/g'
+  local result
+  result=$(echo "$path" | sed -E 's/\.([0-9]+)(\.|$)/[\1]\2/g')
+  # Убедимся, что путь начинается с точки (для jq)
+  if [[ ! "$result" =~ ^\. ]]; then
+    result=".$result"
+  fi
+  echo "$result"
 }
 
 # Получить значение по dot‑пути из JSON (stdin). Если нет — вернуть default (второй аргумент)
@@ -374,9 +380,81 @@ sys.stdout.write(json.dumps(obj, separators=(",", ":")))'
   esac
 }
 
+# Получить длину JSON массива (stdin)
+# Использование: echo "$arr" | json_array_length
+json_array_length() {
+  local input
+  input="$(cat)"
+
+  if [[ -z "$input" ]]; then
+    echo "0"
+    return
+  fi
+
+  local backend
+  backend="$(_json_backend)"
+  case "$backend" in
+    jq)
+      echo "$input" | jq 'length' 2>/dev/null || echo "0"
+      ;;
+    powershell)
+      local ps='
+$json = [Console]::In.ReadToEnd();
+if ([string]::IsNullOrEmpty($json)) { 0; exit 0 }
+try {
+  $obj = $json | ConvertFrom-Json -Depth 200
+  if ($obj -is [System.Collections.IList]) {
+    $obj.Count
+  } else {
+    0
+  }
+} catch { 0 }
+'
+      printf "%s" "$input" | powershell -NoProfile -Command "$ps" 2>/dev/null || echo "0"
+      ;;
+    python3|python)
+      "$backend" - <<'PY' 2>/dev/null || echo "0"
+import sys, json
+data=sys.stdin.read()
+if not data:
+    print(0)
+    sys.exit(0)
+try:
+    obj=json.loads(data)
+    if isinstance(obj, list):
+        print(len(obj))
+    else:
+        print(0)
+except Exception:
+    print(0)
+PY
+      ;;
+    ruby)
+      ruby - <<'RB' 2>/dev/null || echo "0"
+require "json"
+begin
+  data = STDIN.read
+  obj = JSON.parse(data)
+  if obj.is_a?(Array)
+    puts obj.length
+  else
+    puts 0
+  end
+rescue
+  puts 0
+end
+RB
+      ;;
+    *)
+      echo "0"
+      ;;
+  esac
+}
+
 export -f json_get
 export -f jsonl_slurp
 export -f json_to_entries
 export -f json_build
+export -f json_array_length
 
 

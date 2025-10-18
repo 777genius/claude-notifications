@@ -15,14 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: choco install jq -y
-        shell: powershell
-
-      - name: Verify jq installation
-        run: jq --version
-        shell: bash
-
       - name: Run test suite
         run: bash test/run-tests.sh
         shell: bash

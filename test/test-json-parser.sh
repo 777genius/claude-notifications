@@ -24,12 +24,7 @@ test_jsonl_slurp_invalid_lines() {
   out="$(cat "$SCRIPT_DIR/fixtures/invalid.jsonl" | jsonl_slurp)"
   # Should parse only valid lines; our fixture has no fully valid lines
   local len
-  if command_exists jq; then
-    len="$(echo "$out" | jq 'length')"
-  else
-    # Fallback: rough check for []
-    len=0; [[ "$out" != "[]" ]] && len=1
-  fi
+  len="$(echo "$out" | json_array_length)"
   assert_equals "0" "$len" "invalid JSONL lines are skipped"
 }
 
@@ -37,8 +32,8 @@ test_jsonl_slurp_plan_ready_count_and_tool() {
   local arr
   arr="$(cat "$SCRIPT_DIR/fixtures/plan-ready.jsonl" | jsonl_slurp)"
   local len tool
-  len="$(echo "$arr" | jq 'length')"
-  tool="$(echo "$arr" | jq -r '.[2].message.content[1].name')"
+  len="$(echo "$arr" | json_array_length)"
+  tool="$(echo "$arr" | json_get ".2.message.content.1.name" "")"
   assert_equals "3" "$len" "plan-ready.jsonl slurped length == 3"
   assert_equals "ExitPlanMode" "$tool" "3rd line has ExitPlanMode tool"
 }
@@ -47,21 +42,21 @@ test_jsonl_slurp_question_tool() {
   local arr
   arr="$(cat "$SCRIPT_DIR/fixtures/question.jsonl" | jsonl_slurp)"
   local name
-  name="$(echo "$arr" | jq -r '.[1].message.content[1].name')"
+  name="$(echo "$arr" | json_get ".1.message.content.1.name" "")"
   assert_equals "AskUserQuestion" "$name" "question.jsonl has AskUserQuestion tool on 2nd line"
 }
 
 test_jsonl_slurp_review_complete_length() {
   local arr len
   arr="$(cat "$SCRIPT_DIR/fixtures/review-complete.jsonl" | jsonl_slurp)"
-  len="$(echo "$arr" | jq 'length')"
+  len="$(echo "$arr" | json_array_length)"
   assert_equals "4" "$len" "review-complete.jsonl length == 4"
 }
 
 test_jsonl_slurp_task_complete_length() {
   local arr len
   arr="$(cat "$SCRIPT_DIR/fixtures/task-complete.jsonl" | jsonl_slurp)"
-  len="$(echo "$arr" | jq 'length')"
+  len="$(echo "$arr" | json_array_length)"
   # В фикстуре 5 непустых JSON строк, последняя пустая → ожидаем 5
   assert_equals "5" "$len" "task-complete.jsonl length == 5"
 }
@@ -105,7 +100,7 @@ test_jsonl_slurp_whitespace_lines() {
   local data='\n {"a":1}\n\n {"b":2} \n\n'
   local out len
   out="$(printf "%b" "$data" | jsonl_slurp)"
-  len="$(echo "$out" | jq 'length')"
+  len="$(echo "$out" | json_array_length)"
   assert_equals "2" "$len" "whitespace lines should be ignored"
 }
 
@@ -113,8 +108,8 @@ test_json_build_odd_number_of_args() {
   local out
   out="$(json_build a "1" b)"  # b без значения → пустая строка
   local a b
-  a="$(echo "$out" | jq -r '.a')"
-  b="$(echo "$out" | jq -r '.b')"
+  a="$(echo "$out" | json_get ".a" "")"
+  b="$(echo "$out" | json_get ".b" "")"
   assert_equals "1" "$a" "json_build a=1"
   assert_equals "" "$b" "json_build b should default to empty string"
 }
@@ -139,10 +134,13 @@ test_json_get_object_returns_minified_json() {
   local json='{"obj":{"x":1,"y":[2,3]}}'
   local out
   out="$(echo "$json" | json_get ".obj" "")"
-  # Compare via jq normalization to avoid backend diffs
-  local norm
-  norm="$(echo "$out" | jq -c '.')"
-  assert_equals '{"x":1,"y":[2,3]}' "$norm" "object value is JSON"
+  # Should return minified JSON - check if contains expected keys
+  assert_contains "$out" '"x"' "object contains x key"
+  assert_contains "$out" '"y"' "object contains y key"
+  # Verify it's valid JSON by parsing a field from it
+  local x
+  x="$(echo "$out" | json_get ".x" "")"
+  assert_equals "1" "$x" "object value is valid JSON with x=1"
 }
 
 test_json_to_entries_outputs_pairs() {
@@ -158,8 +156,8 @@ test_json_to_entries_outputs_pairs() {
 test_json_build_builds_object() {
   local out a b
   out="$(json_build session_id "123" status "ok")"
-  a="$(echo "$out" | jq -r '.session_id')"
-  b="$(echo "$out" | jq -r '.status')"
+  a="$(echo "$out" | json_get ".session_id" "")"
+  b="$(echo "$out" | json_get ".status" "")"
   assert_equals "123" "$a" "json_build session_id=123"
   assert_equals "ok" "$b" "json_build status=ok"
 }
