@@ -1,0 +1,36 @@
+name: Windows Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-windows:
+    name: Test on Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: choco install jq -y
+        shell: powershell
+
+      - name: Verify jq installation
+        run: jq --version
+        shell: bash
+
+      - name: Run test suite
+        run: bash test/run-tests.sh
+        shell: bash
+
+      - name: Test summary
+        if: always()
+        run: |
+          if [ -f test-results.txt ]; then
+            cat test-results.txt
+          fi
+        shell: bash

@@ -1,0 +1,34 @@
+name: Linux Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-linux:
+    name: Test on Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Verify jq installation
+        run: jq --version
+
+      - name: Run test suite
+        run: |
+          chmod +x test/run-tests.sh
+          ./test/run-tests.sh
+
+      - name: Test summary
+        if: always()
+        run: |
+          if [ -f test-results.txt ]; then
+            cat test-results.txt
+          fi
