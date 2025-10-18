@@ -177,6 +177,7 @@ main() {
   # Get status configuration
   local status_title=$(echo "$config" | jq -r ".statuses.${status}.title // \"Claude Code\"")
   local sound_file=$(echo "$config" | jq -r ".statuses.${status}.sound // empty")
+  local app_icon=$(echo "$config" | jq -r ".notifications.desktop.appIcon // empty")
 
   # Generate friendly session name and add to title
   local session_name=$(generate_session_name "$session_id")
@@ -185,6 +186,7 @@ main() {
   log_debug "Status title: $status_title"
   log_debug "Session name: $session_name"
   log_debug "Sound file from config: $sound_file"
+  log_debug "App icon from config: $app_icon"
 
   # Resolve sound file path
   if [[ -n "$sound_file" ]] && [[ ! "$sound_file" = /* ]]; then
@@ -192,10 +194,19 @@ main() {
   fi
   log_debug "Resolved sound file path: $sound_file"
 
+  # Resolve app icon path (expand ${CLAUDE_PLUGIN_ROOT} and relative paths)
+  if [[ -n "$app_icon" ]]; then
+    app_icon="${app_icon//\$\{CLAUDE_PLUGIN_ROOT\}/${PLUGIN_DIR}}"
+    if [[ ! "$app_icon" = /* ]]; then
+      app_icon="${PLUGIN_DIR}/${app_icon}"
+    fi
+    log_debug "Resolved app icon path: $app_icon"
+  fi
+
   # Send desktop notification
   if [[ "$desktop_enabled" == "true" ]]; then
     log_debug "Sending desktop notification..."
-    send_notification "$status_title" "$summary" "$cwd" || true
+    send_notification "$status_title" "$summary" "$cwd" "$app_icon" || true
     log_debug "Desktop notification sent"
 
     # Play sound if configured

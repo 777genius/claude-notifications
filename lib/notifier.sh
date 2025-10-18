@@ -6,11 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/platform.sh"
 
 # Send desktop notification
-# Args: $1 - title, $2 - message, $3 - working directory (optional)
+# Args: $1 - title, $2 - message, $3 - working directory (optional), $4 - app icon (optional)
 send_notification() {
   local title="$1"
   local message="$2"
   local cwd="${3:-}"
+  local app_icon="${4:-}"
   local os=$(detect_os)
 
   [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification called for OS: $os" >> "$LOG_FILE" || true
@@ -22,11 +23,11 @@ send_notification() {
   case "$os" in
     macos)
       [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_macos" >> "$LOG_FILE" || true
-      send_notification_macos "$title" "$message" "$cwd"
+      send_notification_macos "$title" "$message" "$cwd" "$app_icon"
       ;;
     linux)
       [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_linux" >> "$LOG_FILE" || true
-      send_notification_linux "$title" "$message"
+      send_notification_linux "$title" "$message" "$app_icon"
       ;;
     windows)
       [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_windows" >> "$LOG_FILE" || true
@@ -71,8 +72,9 @@ send_notification_macos() {
   local title="$1"
   local message="$2"
   local cwd="${3:-}"
+  local app_icon="${4:-}"
 
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification_macos: title='$title'" >> "$LOG_FILE" || true
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification_macos: title='$title', icon='$app_icon'" >> "$LOG_FILE" || true
 
   # Ensure setup has been run (only once)
   ensure_notifier_setup
@@ -95,16 +97,23 @@ send_notification_macos() {
   local terminal_bundle=$(detect_terminal)
   [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Terminal bundle: $terminal_bundle" >> "$LOG_FILE" || true
 
+  # Build icon argument if provided
+  local icon_arg=""
+  if [[ -n "$app_icon" ]] && [[ -f "$app_icon" ]]; then
+    icon_arg="-contentImage $app_icon"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using content image: $app_icon" >> "$LOG_FILE" || true
+  fi
+
   # Try system terminal-notifier first
   if command -v terminal-notifier &> /dev/null; then
     [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using system terminal-notifier" >> "$LOG_FILE" || true
     if [[ -n "$terminal_bundle" ]] && [[ "$terminal_bundle" != "none" ]]; then
       local activate_script="${SCRIPT_DIR}/../bin/activate-terminal.sh"
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
-      terminal-notifier -title "$title" -message "$message" -execute "$activate_script $terminal_bundle" 2>/dev/null &
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message' $icon_arg -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
+      terminal-notifier -title "$title" -message "$message" $icon_arg -execute "$activate_script $terminal_bundle" 2>/dev/null &
     else
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message'" >> "$LOG_FILE" || true
-      terminal-notifier -title "$title" -message "$message" 2>/dev/null &
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message' $icon_arg" >> "$LOG_FILE" || true
+      terminal-notifier -title "$title" -message "$message" $icon_arg 2>/dev/null &
     fi
     [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] System terminal-notifier command executed" >> "$LOG_FILE" || true
     return 0
@@ -117,11 +126,11 @@ send_notification_macos() {
     [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using bundled terminal-notifier" >> "$LOG_FILE" || true
     if [[ -n "$terminal_bundle" ]] && [[ "$terminal_bundle" != "none" ]]; then
       local activate_script="${SCRIPT_DIR}/../bin/activate-terminal.sh"
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
-      "$bundled_notifier" -title "$title" -message "$message" -execute "$activate_script $terminal_bundle" 2>/dev/null &
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message' $icon_arg -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
+      "$bundled_notifier" -title "$title" -message "$message" $icon_arg -execute "$activate_script $terminal_bundle" 2>/dev/null &
     else
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message'" >> "$LOG_FILE" || true
-      "$bundled_notifier" -title "$title" -message "$message" 2>/dev/null &
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message' $icon_arg" >> "$LOG_FILE" || true
+      "$bundled_notifier" -title "$title" -message "$message" $icon_arg 2>/dev/null &
     fi
     [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bundled terminal-notifier command executed" >> "$LOG_FILE" || true
     return 0
@@ -139,11 +148,11 @@ send_notification_macos() {
 send_notification_linux() {
   local title="$1"
   local message="$2"
-  local icon="$3"
+  local app_icon="$3"
 
   if command_exists notify-send; then
-    if [[ -n "$icon" ]] && [[ -f "$icon" ]]; then
-      notify-send -i "$icon" -u normal "$title" "$message" 2>/dev/null &
+    if [[ -n "$app_icon" ]] && [[ -f "$app_icon" ]]; then
+      notify-send -i "$app_icon" -u normal "$title" "$message" 2>/dev/null &
     else
       notify-send -u normal "$title" "$message" 2>/dev/null &
     fi

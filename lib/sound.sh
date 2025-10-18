@@ -73,6 +73,8 @@ play_sound_linux() {
   elif command_exists ffplay; then
     ffplay -nodisp -autoexit -hide_banner -loglevel quiet "$sound_file" 2>/dev/null &
   fi
+
+  return 0
 }
 
 # Windows sound playback using PowerShell
@@ -86,6 +88,8 @@ play_sound_windows() {
     \$sound = New-Object System.Media.SoundPlayer('$windows_path')
     \$sound.Play()
   " 2>/dev/null &
+
+  return 0
 }
 
 export -f play_sound

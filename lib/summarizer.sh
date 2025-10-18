@@ -183,13 +183,16 @@ generate_task_summary() {
   echo "Last message length: ${#last_message}" >> "$debug_log"
 
   # Determine time window: from last user message to last assistant message
-  # Last user message where content is a plain string (ignore tool_result arrays)
-  local last_user_ts=$(echo "$transcript" | jq -s -r '
+  # IMPORTANT: We only consider the last message where user actually typed text in the REPL.
+  #   The filter `select(.message.content? | type == "string")` excludes synthetic/user-typed-like
+  #   entries (e.g., tool_result arrays or system-generated structures), ensuring counters
+  #   are calculated strictly after the user's explicit prompt.
+  local last_user_ts=$(printf "%s\n" "$transcript" | jq -s -r '
     [ .[]
       | select(.type == "user")
       | select(.message.content? | type == "string")
     ] | last | .timestamp // empty' 2>/dev/null || echo "")
-  local last_assistant_ts=$(echo "$transcript" | jq -s -r '[.[] | select(.type == "assistant")] | last | .timestamp // empty' 2>/dev/null || echo "")
+  local last_assistant_ts=$(printf "%s\n" "$transcript" | jq -s -r '[.[] | select(.type == "assistant")] | last | .timestamp // empty' 2>/dev/null || echo "")
   echo "Last user ts: $last_user_ts, last assistant ts: $last_assistant_ts" >> "$debug_log"
 
   # Compute duration between last user and last assistant
