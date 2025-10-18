@@ -1,6 +1,9 @@
 #!/bin/bash
 # cross-platform.sh - Cross-platform compatibility helpers for macOS/Linux/Windows
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Source platform detection (use local variable to avoid conflicts)
 _CROSS_PLATFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_CROSS_PLATFORM_DIR}/platform.sh"

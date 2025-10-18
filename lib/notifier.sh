@@ -1,6 +1,9 @@
 #!/bin/bash
 # notifier.sh - Cross-platform desktop notifications
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Source platform detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/platform.sh"

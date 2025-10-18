@@ -6,13 +6,13 @@
     },
     "metadata": {
         "description": "Smart notifications marketplace for Claude Code",
-        "version": "1.0.2"
+        "version": "1.0.3"
     },
     "plugins": [{
         "name": "claude-notifications",
         "source": "./",
         "description": "Desktop notifications, webhooks, and sound alerts for Claude Code task completion, plan mode, and questions",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "author": {
             "name": "777genius",
             "email": "[email protected]"

@@ -2,6 +2,9 @@
 # json-parser.sh — кроссплатформенные утилиты для JSON/JSONL без новых зависимостей
 # Предпочитает jq, на Windows использует PowerShell, на *nix — python3/python/ruby.
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 _JSON_PARSER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_JSON_PARSER_DIR}/platform.sh"
 

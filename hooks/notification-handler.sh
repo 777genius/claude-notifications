@@ -5,23 +5,15 @@
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PLUGIN_DIR
 
-# Setup logging
+# Setup logging (required by error handler)
 LOG_FILE="${PLUGIN_DIR}/notification-debug.log"
+export LOG_FILE
 log_debug() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
 }
 
-# Error handler
-error_handler() {
-  local line_no=$1
-  log_debug "ERROR: Script failed at line $line_no"
-  log_debug "Last command: $BASH_COMMAND"
-  exit 1
-}
-
-trap 'error_handler ${LINENO}' ERR
-
-set -eu
+# Source global error handler FIRST (installs trap and sets strict mode)
+source "${PLUGIN_DIR}/lib/error-handler.sh"
 
 # Source all library functions
 source "${PLUGIN_DIR}/lib/platform.sh"

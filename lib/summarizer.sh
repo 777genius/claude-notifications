@@ -1,6 +1,9 @@
 #!/bin/bash
 # summarizer.sh - Simple logic for task summarization (no AI required)
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Source cross-platform helpers (use local variable to avoid conflicts)
 _SUMMARIZER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_SUMMARIZER_DIR}/platform.sh"
@@ -205,7 +208,7 @@ end
 # Helper: Extract tool names from transcript, optionally filtered by timestamp
 _extract_tool_names() {
   local transcript="$1"
-  local since_ts="$2"  # Optional: only tools after this timestamp
+  local since_ts="${2:-}"  # Optional: only tools after this timestamp
   local all_arr=$(echo "$transcript" | jsonl_slurp)
   local backend=$(_json_backend)
 

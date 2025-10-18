@@ -5,6 +5,9 @@
 [[ -n "${_ANALYZER_SOURCED:-}" ]] && return 0
 _ANALYZER_SOURCED=1
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Source dependencies
 _ANALYZER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_ANALYZER_DIR}/json-parser.sh"

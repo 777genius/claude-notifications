@@ -1,6 +1,9 @@
 #!/bin/bash
 # session-name.sh - Generate friendly session names from UUID
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Lists for friendly name generation
 ADJECTIVES=(
   "bold" "brave" "bright" "calm" "clever"

@@ -1,6 +1,9 @@
 #!/bin/bash
 # webhook.sh - Send webhook notifications
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Source JSON parser
 _WEBHOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_WEBHOOK_DIR}/json-parser.sh"

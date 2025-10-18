@@ -1,6 +1,9 @@
 #!/bin/bash
 # platform.sh - Cross-platform OS detection and compatibility layer
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 # Detect operating system
 detect_os() {
   case "$(uname -s)" in

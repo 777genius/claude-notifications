@@ -1,6 +1,9 @@
 #!/bin/bash
 # activate-tab.sh - Activate terminal tab/window by working directory
 
+# Global error handler protection
+[[ -z "${ERROR_HANDLER_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/error-handler.sh"
+
 activate_warp_tab() {
   local target_dir="$1"
 

@@ -1,6 +1,6 @@
 {
   "name": "claude-notifications",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Smart notifications for Claude Code task statuses with desktop notifications, webhooks, and sound alerts",
   "author": {
     "name": "777genius",
