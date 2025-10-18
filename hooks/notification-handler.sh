@@ -57,8 +57,9 @@ main() {
     local current_timestamp=$(get_current_timestamp)
     local age=$((current_timestamp - lock_timestamp))
 
-    if [[ $age -lt 2 ]]; then
-      log_debug "Duplicate hook detected early (age: ${age}s), skipping [PID: $$]"
+    # На Windows stat может вернуть 0 (mtime недоступно) — считаем это свежим дубликатом
+    if [[ $lock_timestamp -eq 0 ]] || [[ $age -lt 2 ]]; then
+      log_debug "Duplicate hook detected early (age: ${age}s, mtime: $lock_timestamp), skipping [PID: $$]"
       exit 0
     fi
   fi
@@ -144,8 +145,8 @@ main() {
     local current_timestamp=$(get_current_timestamp)
     local age=$((current_timestamp - lock_timestamp))
 
-    if [[ $age -lt 2 ]]; then
-      log_debug "Duplicate detected at lock acquire (age: ${age}s), skipping [PID: $$]"
+    if [[ $lock_timestamp -eq 0 ]] || [[ $age -lt 2 ]]; then
+      log_debug "Duplicate detected at lock acquire (age: ${age}s, mtime: $lock_timestamp), skipping [PID: $$]"
       exit 0
     fi
 

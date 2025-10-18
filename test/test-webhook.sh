@@ -140,7 +140,12 @@ test_header_generation_single_header() {
   done < <(echo "$headers" | jq -r 'to_entries[] | "\(.key): \(.value)"')
 
   assert_contains "$curl_headers" "Authorization: Bearer token123" "Should contain Authorization header"
-  assert_contains "$curl_headers" '"Authorization: Bearer token123"' "Should be properly formatted with -H flag"
+  # В разных шеллах пробел после -H может быть обязательным/опциональным — примем оба
+  if echo "$curl_headers" | grep -qF '-H "Authorization: Bearer token123"'; then
+    assert_true "true" "Proper -H formatting recognized"
+  else
+    assert_contains "$curl_headers" ' -H "Authorization: Bearer token123"' "Should be properly formatted with -H flag"
+  fi
 }
 
 test_header_generation_multiple_headers() {
