@@ -3,6 +3,7 @@
 [![macOS Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml)
 [![Linux Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-linux.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-linux.yml)
 [![Windows Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml)
+[![codecov](https://codecov.io/gh/777genius/claude-notifications/branch/main/graph/badge.svg)](https://codecov.io/gh/777genius/claude-notifications)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 

@@ -35,6 +35,10 @@ test_*.sh
 FINAL_TEST.sh
 *.txt
 
+# Coverage reports
+coverage/
+*.coverage
+
 # Notifier setup marker
 .notifier_setup_done
 

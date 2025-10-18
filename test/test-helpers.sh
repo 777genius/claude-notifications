@@ -179,7 +179,7 @@ assert_contains() {
 
   TESTS_RUN=$((TESTS_RUN + 1))
 
-  if echo "$haystack" | grep -qF "$needle"; then
+  if echo "$haystack" | grep -qF -- "$needle"; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
     echo -e "${GREEN}✓${NC} $message"
     return 0
@@ -199,7 +199,7 @@ assert_not_contains() {
 
   TESTS_RUN=$((TESTS_RUN + 1))
 
-  if echo "$haystack" | grep -qF "$needle"; then
+  if echo "$haystack" | grep -qF -- "$needle"; then
     TESTS_FAILED=$((TESTS_FAILED + 1))
     echo -e "${RED}✗${NC} $message"
     echo -e "  Haystack: ${RED}$haystack${NC}"

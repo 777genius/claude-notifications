@@ -15,16 +15,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq kcov
 
       - name: Verify jq installation
         run: jq --version
 
-      - name: Run test suite
+      - name: Run test suite with coverage
         run: |
           chmod +x test/run-tests.sh
+          mkdir -p coverage
+
+          # Run tests with kcov for coverage
+          for test_file in test/test-*.sh; do
+            test_name=$(basename "$test_file" .sh)
+            kcov --exclude-pattern=/usr,/tmp coverage/"$test_name" bash "$test_file" || true
+          done
+
+          # Also run regular test suite
           ./test/run-tests.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          flags: bash
+          name: bash-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Test summary
         if: always()
