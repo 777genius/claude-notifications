@@ -114,7 +114,7 @@ detect_terminal() {
     fi
 
     # Fallback: try TERM_PROGRAM env variable
-    case "$TERM_PROGRAM" in
+    case "${TERM_PROGRAM:-}" in
       WarpTerminal)
         echo "dev.warp.Warp-Stable"
         ;;
@@ -134,7 +134,7 @@ detect_terminal() {
     esac
   elif [[ "$os" == "linux" ]]; then
     # Linux: try environment variables
-    case "$TERM_PROGRAM" in
+    case "${TERM_PROGRAM:-}" in
       vscode)
         echo "vscode"
         ;;
