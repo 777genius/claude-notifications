@@ -11,6 +11,11 @@ jobs:
     name: Test on macOS
     runs-on: macos-latest
 
+    permissions:
+      contents: write    # Allow push to gh-pages branch
+      pages: write       # Allow GitHub Pages deployment
+      id-token: write    # Allow deployment verification
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
