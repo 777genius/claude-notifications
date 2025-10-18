@@ -5,7 +5,7 @@
 [![Windows Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/777genius/claude-notifications/gh-pages/coverage-badge.json)](https://codecov.io/gh/777genius/claude-notifications)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
+![visitor badge](https://visitor-badge.laobi.icu/badge?page_id=claude-notifications)
 
 <img width="350" height="239" alt="image" src="https://github.com/user-attachments/assets/42b7a306-f56f-4499-94cf-f3d573416b6d" />
 
