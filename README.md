@@ -3,8 +3,7 @@
 [![macOS Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml)
 [![Linux Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-linux.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-linux.yml)
 [![Windows Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-windows.yml)
-[![Tests](https://img.shields.io/badge/tests-148%20passed-brightgreen)](test/)
-[![Test Suites](https://img.shields.io/badge/test%20suites-12-blue)](test/)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/777genius/claude-notifications/gh-pages/coverage-badge.json)](https://codecov.io/gh/777genius/claude-notifications)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
@@ -79,17 +78,19 @@ Smart notifications for Claude Code task statuses with desktop notifications, we
 
 ## Test Coverage
 
-This plugin has comprehensive test coverage:
+This plugin has comprehensive test coverage with real code coverage metrics:
 
 | Metric | Value | Description |
 |--------|-------|-------------|
+| **Code Coverage** | See badge above | Measured with bashcov on macOS |
 | **Test Suites** | 12 | Independent test files |
 | **Test Cases** | 148 | Individual test functions |
 | **Source Files** | 10 | Main plugin files (`lib/` + `hooks/`) |
 | **Lines of Code** | 1,319 | Non-comment, non-blank lines |
-| **Test Density** | 11.2 | Test functions per 100 LOC |
 
-All tests run automatically on **macOS**, **Linux**, and **Windows** via GitHub Actions. See [Testing Documentation](docs/testing.md) for details.
+**Coverage is measured using [bashcov](https://github.com/infertux/bashcov) on macOS runners.** The coverage badge updates automatically after each push to main. All tests run on **macOS**, **Linux**, and **Windows**.
+
+For detailed coverage reports, visit [Codecov Dashboard](https://codecov.io/gh/777genius/claude-notifications). See [Testing Documentation](docs/testing.md) for more details.
 
 ## Notification Statuses
 

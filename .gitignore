@@ -36,6 +36,12 @@ FINAL_TEST.sh
 *.txt
 test-stats.json
 
+# Coverage reports
+coverage/
+.coverage
+coverage-badge.json
+.badge-deploy/
+
 # Notifier setup marker
 .notifier_setup_done
 

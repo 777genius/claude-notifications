@@ -21,10 +21,82 @@ jobs:
       - name: Verify jq installation
         run: jq --version
 
+      - name: Install bashcov for coverage
+        run: gem install bashcov simplecov
+
       - name: Run test suite
         run: |
           chmod +x test/run-tests.sh
           ./test/run-tests.sh
+
+      - name: Run tests with coverage
+        run: |
+          chmod +x test/run-tests.sh
+          bashcov --root . ./test/run-tests.sh
+
+      - name: Generate coverage badge JSON
+        if: success()
+        run: |
+          # Extract coverage percentage from HTML report
+          if [ -f coverage/index.html ]; then
+            coverage_percent=$(grep -o '<span class="percent">[0-9.]*%</span>' coverage/index.html | head -1 | grep -o '[0-9.]*' || echo "0")
+            test_count=$(grep -h "^test_" test/test-*.sh 2>/dev/null | wc -l | tr -d ' ')
+
+            # Determine color based on coverage
+            if [ $(echo "$coverage_percent >= 80" | bc) -eq 1 ]; then
+              color="brightgreen"
+            elif [ $(echo "$coverage_percent >= 60" | bc) -eq 1 ]; then
+              color="green"
+            elif [ $(echo "$coverage_percent >= 40" | bc) -eq 1 ]; then
+              color="yellow"
+            else
+              color="red"
+            fi
+
+            # Generate shields.io endpoint JSON
+            cat > coverage-badge.json <<EOF
+{
+  "schemaVersion": 1,
+  "label": "coverage",
+  "message": "${coverage_percent}% | ${test_count} tests",
+  "color": "${color}"
+}
+EOF
+            cat coverage-badge.json
+          else
+            echo "Coverage report not found"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          flags: bash,macos
+          name: bash-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Prepare badge for deployment
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .badge-deploy
+          cp coverage-badge.json .badge-deploy/
+
+      - name: Deploy badge to gh-pages
+        if: success() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .badge-deploy
+          publish_branch: gh-pages
+          keep_files: false
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Update coverage badge'
 
       - name: Test summary
         if: always()
