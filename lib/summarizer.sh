@@ -50,16 +50,18 @@ generate_question_summary() {
 
   # Prefer ONLY a recent AskUserQuestion (avoid stale questions for UI confirmations)
   # 1) Find the last AskUserQuestion with its assistant timestamp within the recent window
-  local ask_json=$(echo "$transcript" | jq -s -c '
+  local ask_json=$(printf "%s\n" "$transcript" | jq -s -c '
     [ .[]
-      | select(.type == "assistant") as $m
-      | ($m.message.content[]? | select(.type == "tool_use" and .name == "AskUserQuestion")
-          | {question: .input.questions[0].question, ts: ($m.timestamp // empty)})
+      | select(.type == "assistant")
+      | . as $m
+      | $m.message.content[]?
+      | select(.type == "tool_use" and .name == "AskUserQuestion")
+      | {question: .input.questions[0].question, ts: ($m.timestamp // empty)}
     ] | last // {}' 2>/dev/null || echo "{}")
 
   local ask_question=$(echo "$ask_json" | jq -r '.question // empty' 2>/dev/null || echo "")
   local ask_ts=$(echo "$ask_json" | jq -r '.ts // empty' 2>/dev/null || echo "")
-  local last_assistant_ts=$(echo "$transcript" | jq -s -r '[.[] | select(.type == "assistant")] | last | .timestamp // empty' 2>/dev/null || echo "")
+  local last_assistant_ts=$(printf "%s\n" "$transcript" | jq -s -r '[.[] | select(.type == "assistant")] | last | .timestamp // empty' 2>/dev/null || echo "")
 
   local use_ask_question="false"
   if [[ -n "$ask_question" ]] && [[ -n "$ask_ts" ]] && [[ -n "$last_assistant_ts" ]]; then
@@ -84,8 +86,11 @@ generate_question_summary() {
     return
   fi
 
+  # If recency check didn't pass (timestamps missing/old), do NOT try to guess:
+  # fall back to textual search (below) or a generic message.
+
   # 2) Fallback: look for a recent textual question in the last few assistant messages
-  local recent_text=$(echo "$transcript" | jq -s -r '.[-8:] | .[] | select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text' 2>/dev/null | tail -5 | grep "?" | tail -1)
+  local recent_text=$(printf "%s\n" "$transcript" | jq -s -r '.[-8:] | .[] | select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text' 2>/dev/null | tail -5 | grep "?" | tail -1)
   if [[ -n "$recent_text" ]]; then
     if [[ ${#recent_text} -gt 150 ]]; then
       local truncated=$(echo "$recent_text" | head -c 147 | sed 's/[^ ]*$//')
