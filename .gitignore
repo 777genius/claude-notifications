@@ -34,10 +34,7 @@ config/config.json
 test_*.sh
 FINAL_TEST.sh
 *.txt
-
-# Coverage reports
-coverage/
-*.coverage
+test-stats.json
 
 # Notifier setup marker
 .notifier_setup_done
