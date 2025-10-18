@@ -310,14 +310,15 @@ json_build() {
     local keys=()
     local key
     local val
-    local i=1
-    local count=$#
-    while [[ $i -le $count ]]; do
-      key="$1"; shift
-      val="$1"; shift
+    while [[ $# -gt 0 ]]; do
+      key="$1"; shift || true
+      if [[ $# -gt 0 ]]; then
+        val="$1"; shift || true
+      else
+        val=""
+      fi
       args+=(--arg "$key" "$val")
       keys+=("$key")
-      i=$((i+2))
     done
     jq -n -c "$(
       printf '{'
@@ -341,7 +342,7 @@ json_build() {
   case "$backend" in
     powershell)
       # Передаём пары как аргументы в PowerShell и собираем хеш внутри
-      local ps='$h=@{}; for ($i=0; $i -lt $args.Length; $i+=2) { $k=$args[$i]; $v=$args[$i+1]; if ($null -eq $v) { $v = "" } $h[$k]=$v } $h | ConvertTo-Json -Depth 50 -Compress'
+      local ps='$h=@{}; for ($i=0; $i -lt $args.Length; $i+=2) { $k=$args[$i]; $v=($i+1 -lt $args.Length) ? $args[$i+1] : ""; $h[$k]=$v } $h | ConvertTo-Json -Depth 50 -Compress'
       powershell -NoProfile -Command "$ps" -- "$@" 2>/dev/null
       ;;
     python3|python)

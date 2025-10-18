@@ -78,6 +78,46 @@ test_json_get_basic_strings_numbers_bools() {
   assert_equals "true" "$c" "json_get true"
   assert_equals "false" "$d" "json_get false"
 }
+test_json_get_null_returns_default() {
+  local json='{"k":null}'
+  local v
+  v="$(echo "$json" | json_get ".k" "def")"
+  assert_equals "def" "$v" "null should return default"
+}
+
+test_json_get_zero_and_float() {
+  local json='{"z":0,"f":3.14}'
+  local z f
+  z="$(echo "$json" | json_get ".z" "")"
+  f="$(echo "$json" | json_get ".f" "")"
+  assert_equals "0" "$z" "zero should be preserved"
+  assert_equals "3.14" "$f" "float should be preserved"
+}
+
+test_json_get_array_value() {
+  local json='{"arr":[1,2,3]}'
+  local v
+  v="$(echo "$json" | json_get ".arr.2" "")"
+  assert_equals "3" "$v" "array index value"
+}
+
+test_jsonl_slurp_whitespace_lines() {
+  local data='\n {"a":1}\n\n {"b":2} \n\n'
+  local out len
+  out="$(printf "%b" "$data" | jsonl_slurp)"
+  len="$(echo "$out" | jq 'length')"
+  assert_equals "2" "$len" "whitespace lines should be ignored"
+}
+
+test_json_build_odd_number_of_args() {
+  local out
+  out="$(json_build a "1" b)"  # b без значения → пустая строка
+  local a b
+  a="$(echo "$out" | jq -r '.a')"
+  b="$(echo "$out" | jq -r '.b')"
+  assert_equals "1" "$a" "json_build a=1"
+  assert_equals "" "$b" "json_build b should default to empty string"
+}
 
 test_json_get_nested_and_array_index() {
   local json='{"obj":{"arr":[{"t":"first"},{"t":"second"}]}}'
@@ -131,11 +171,16 @@ run_test test_jsonl_slurp_question_tool "jsonl_slurp: question tool"
 run_test test_jsonl_slurp_review_complete_length "jsonl_slurp: review-complete length"
 run_test test_jsonl_slurp_task_complete_length "jsonl_slurp: task-complete length"
 run_test test_json_get_basic_strings_numbers_bools "json_get: primitives"
+run_test test_json_get_null_returns_default "json_get: null→default"
+run_test test_json_get_zero_and_float "json_get: zero & float"
+run_test test_json_get_array_value "json_get: array value"
 run_test test_json_get_nested_and_array_index "json_get: nested + array index"
 run_test test_json_get_missing_with_default "json_get: default value"
 run_test test_json_get_object_returns_minified_json "json_get: object value"
 run_test test_json_to_entries_outputs_pairs "json_to_entries: pairs"
 run_test test_json_build_builds_object "json_build: assemble object"
+run_test test_json_build_odd_number_of_args "json_build: odd number of args"
+run_test test_jsonl_slurp_whitespace_lines "jsonl_slurp: ignore whitespace lines"
 
 print_results
 
