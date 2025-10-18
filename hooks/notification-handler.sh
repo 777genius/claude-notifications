@@ -96,9 +96,25 @@ main() {
     if [[ "$tool_name" == "ExitPlanMode" ]]; then
       status="plan_ready"
       log_debug "PreToolUse: ExitPlanMode detected → plan_ready notification"
+
+      # Persist interactive state for this session (used by Notification hook)
+      # Based on official hooks flow: PreToolUse fires before UI prompts; Notification fires separately
+      # Docs: https://docs.claude.com/en/docs/claude-code/hooks-guide#custom-notification-hook
+      local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
+      local now_ts=$(get_current_timestamp)
+      local state_json=$(echo "$hook_data" | jq -c --arg tool "$tool_name" --argjson ts "$now_ts" '{session_id: .session_id, last_interactive_tool: $tool, last_ts: $ts, cwd: .cwd}')
+      echo "$state_json" > "$state_file"
+      log_debug "PreToolUse: session state written to $state_file"
     elif [[ "$tool_name" == "AskUserQuestion" ]]; then
       status="question"
       log_debug "PreToolUse: AskUserQuestion detected → question notification"
+
+      # Persist interactive state for AskUserQuestion as well
+      local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
+      local now_ts=$(get_current_timestamp)
+      local state_json=$(echo "$hook_data" | jq -c --arg tool "$tool_name" --argjson ts "$now_ts" '{session_id: .session_id, last_interactive_tool: $tool, last_ts: $ts, cwd: .cwd}')
+      echo "$state_json" > "$state_file"
+      log_debug "PreToolUse: session state written to $state_file"
     else
       # Should never happen with matcher, but just in case
       log_debug "PreToolUse: unexpected tool '$tool_name' - skipping"
@@ -119,22 +135,29 @@ main() {
 
   log_debug "Processing status: $status"
 
-  # === Все early exits пройдены - создаем lock перед отправкой ===
-  # Финальная проверка на race condition (могли пройти оба процесса выше)
-  if [[ -f "$LOCK_FILE" ]]; then
+  # === Все early exits пройдены — пытаемся атомарно захватить lock ===
+  if try_acquire_lock "$LOCK_FILE"; then
+    log_debug "Exclusive lock acquired: $LOCK_FILE [PID: $$]"
+  else
+    # Lock уже существует — проверим его возраст
     local lock_timestamp=$(get_file_mtime "$LOCK_FILE")
     local current_timestamp=$(get_current_timestamp)
     local age=$((current_timestamp - lock_timestamp))
 
     if [[ $age -lt 2 ]]; then
-      log_debug "Duplicate detected at final check (age: ${age}s), skipping [PID: $$]"
+      log_debug "Duplicate detected at lock acquire (age: ${age}s), skipping [PID: $$]"
+      exit 0
+    fi
+
+    # Похоже, lock устарел — попробуем заменить его
+    rm -f "$LOCK_FILE" 2>/dev/null || true
+    if try_acquire_lock "$LOCK_FILE"; then
+      log_debug "Stale lock replaced: $LOCK_FILE [PID: $$]"
+    else
+      log_debug "Another process acquired the lock concurrently, skipping [PID: $$]"
       exit 0
     fi
   fi
-
-  # Создаем lock прямо перед генерацией summary и отправкой
-  create_lock_file "$LOCK_FILE"
-  log_debug "Lock file created before notification: $LOCK_FILE [PID: $$]"
 
   # Get transcript path, session ID, and working directory
   local transcript_path=$(echo "$hook_data" | jq -r '.transcript_path // empty')
@@ -145,6 +168,10 @@ main() {
   # Generate summary with status context
   local summary=$(generate_summary "$transcript_path" "$hook_data" "$status")
   summary=$(clean_text "$summary")
+  if [[ -z "$summary" ]] || [[ "$summary" =~ ^[[:space:]]*$ ]]; then
+    log_debug "Empty summary after cleaning, using default message for status: $status"
+    summary=$(get_default_message "$status")
+  fi
   log_debug "Summary generated: ${summary:0:50}..."
 
   # Get status configuration
@@ -186,6 +213,15 @@ main() {
     log_debug "Sending webhook notification..."
     send_webhook "$status" "$summary" "$session_id" "$config" || true
     log_debug "Webhook sent"
+  fi
+
+  # Session state cleanup on Stop/SubagentStop
+  if [[ "$hook_event" == "Stop" ]] || [[ "$hook_event" == "SubagentStop" ]]; then
+    local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
+    if [[ -f "$state_file" ]]; then
+      rm -f "$state_file" 2>/dev/null || true
+      log_debug "Session state file removed: $state_file"
+    fi
   fi
 
   # Cleanup старых lock-файлов (старше 60 секунд)

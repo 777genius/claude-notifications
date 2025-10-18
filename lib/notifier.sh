@@ -13,7 +13,7 @@ send_notification() {
   local cwd="${3:-}"
   local os=$(detect_os)
 
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification called for OS: $os" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification called for OS: $os" >> "$LOG_FILE" || true
 
   # Escape special characters for shell
   title=$(echo "$title" | sed 's/"/\\"/g')
@@ -21,23 +21,25 @@ send_notification() {
 
   case "$os" in
     macos)
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_macos" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_macos" >> "$LOG_FILE" || true
       send_notification_macos "$title" "$message" "$cwd"
       ;;
     linux)
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_linux" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_linux" >> "$LOG_FILE" || true
       send_notification_linux "$title" "$message"
       ;;
     windows)
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_windows" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Calling send_notification_windows" >> "$LOG_FILE" || true
       send_notification_windows "$title" "$message"
       ;;
     *)
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unknown OS, using fallback" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unknown OS, using fallback" >> "$LOG_FILE" || true
       echo "[Notification] $title: $message" >&2
       ;;
   esac
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification completed" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification completed" >> "$LOG_FILE" || true
+
+  return 0
 }
 
 # Ensure notifier is set up (runs once)
@@ -70,7 +72,7 @@ send_notification_macos() {
   local message="$2"
   local cwd="${3:-}"
 
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification_macos: title='$title'" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] send_notification_macos: title='$title'" >> "$LOG_FILE" || true
 
   # Ensure setup has been run (only once)
   ensure_notifier_setup
@@ -78,57 +80,59 @@ send_notification_macos() {
   # Validate title and message to prevent empty notifications
   if [[ -z "$title" ]] || [[ "$title" =~ ^[[:space:]]*$ ]]; then
     title="Claude Code"
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Empty title detected, using fallback: $title" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Empty title detected, using fallback: $title" >> "$LOG_FILE" || true
   fi
 
   if [[ -z "$message" ]] || [[ "$message" =~ ^[[:space:]]*$ ]]; then
     message="Notification"
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Empty message detected, using fallback: $message" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Empty message detected, using fallback: $message" >> "$LOG_FILE" || true
   fi
 
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final title: '$title' (length: ${#title})" >> "$LOG_FILE"
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final message: '$message' (length: ${#message})" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final title: '$title' (length: ${#title})" >> "$LOG_FILE" || true
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final message: '$message' (length: ${#message})" >> "$LOG_FILE" || true
 
   # Detect terminal bundle ID for click action
   local terminal_bundle=$(detect_terminal)
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Terminal bundle: $terminal_bundle" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Terminal bundle: $terminal_bundle" >> "$LOG_FILE" || true
 
   # Try system terminal-notifier first
   if command -v terminal-notifier &> /dev/null; then
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using system terminal-notifier" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using system terminal-notifier" >> "$LOG_FILE" || true
     if [[ -n "$terminal_bundle" ]] && [[ "$terminal_bundle" != "none" ]]; then
       local activate_script="${SCRIPT_DIR}/../bin/activate-terminal.sh"
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
       terminal-notifier -title "$title" -message "$message" -execute "$activate_script $terminal_bundle" 2>/dev/null &
     else
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message'" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: terminal-notifier -title '$title' -message '$message'" >> "$LOG_FILE" || true
       terminal-notifier -title "$title" -message "$message" 2>/dev/null &
     fi
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] System terminal-notifier command executed" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] System terminal-notifier command executed" >> "$LOG_FILE" || true
     return 0
   fi
 
   # Try bundled terminal-notifier
   local bundled_notifier="${SCRIPT_DIR}/../bin/terminal-notifier.app/Contents/MacOS/terminal-notifier"
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking bundled notifier: $bundled_notifier" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking bundled notifier: $bundled_notifier" >> "$LOG_FILE" || true
   if [[ -x "$bundled_notifier" ]]; then
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using bundled terminal-notifier" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using bundled terminal-notifier" >> "$LOG_FILE" || true
     if [[ -n "$terminal_bundle" ]] && [[ "$terminal_bundle" != "none" ]]; then
       local activate_script="${SCRIPT_DIR}/../bin/activate-terminal.sh"
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message' -execute '$activate_script $terminal_bundle'" >> "$LOG_FILE" || true
       "$bundled_notifier" -title "$title" -message "$message" -execute "$activate_script $terminal_bundle" 2>/dev/null &
     else
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message'" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing: $bundled_notifier -title '$title' -message '$message'" >> "$LOG_FILE" || true
       "$bundled_notifier" -title "$title" -message "$message" 2>/dev/null &
     fi
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bundled terminal-notifier command executed" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bundled terminal-notifier command executed" >> "$LOG_FILE" || true
     return 0
   fi
 
   # Fallback to osascript (may not work in some terminals like Warp)
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using osascript fallback" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using osascript fallback" >> "$LOG_FILE" || true
   osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null &
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] osascript command executed" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] osascript command executed" >> "$LOG_FILE" || true
+
+  return 0
 }
 
 # Linux notification using notify-send
@@ -146,6 +150,8 @@ send_notification_linux() {
   else
     echo "[Notification] $title: $message" >&2
   fi
+
+  return 0
 }
 
 # Windows notification using PowerShell
@@ -174,6 +180,8 @@ send_notification_windows() {
     \$toast = New-Object Windows.UI.Notifications.ToastNotification \$xml
     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Claude Code').Show(\$toast)
   " 2>/dev/null &
+
+  return 0
 }
 
 export -f send_notification

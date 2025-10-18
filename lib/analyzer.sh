@@ -138,9 +138,70 @@ analyze_status() {
   local hook_data="$2"
   local transcript_path=$(echo "$hook_data" | jq -r '.transcript_path // empty')
 
-  # For Notification hook - treat as question (permission request or user input needed)
+  # Notification hooks в Claude Code:
+  # - Это системные события, которые приходят отдельно от сообщений/инструментов в транскрипте.
+  # - Часто следуют ПОСЛЕ PreToolUse ExitPlanMode (когда UI показывает диалог подтверждения плана),
+  #   но сами по себе не содержат имени инструмента. Ранее мы мапили их безусловно → "question",
+  #   что приводило к лишнему уведомлению "Claude Has Questions" сразу после "Plan Ready".
+  # - Здесь реализована защита от дублей: если по последним сообщениям видно, что последний инструмент
+  #   — ExitPlanMode (значит мы уже отправили Plan Ready из PreToolUse), то Notification подавляется.
+  # - Если же по инструментам видно явный вопрос (AskUserQuestion), возвращаем "question" как и прежде.
+  # - UI‑подтверждения для Write/Edit/Bash неотслеживаемы хуками (архитектурное ограничение Claude Code),
+  #   поэтому на них мы не ориентируемся; этот код лишь убирает ложные дубли после ExitPlanMode.
+  # - Анализ делается на основе окна последних ~15 ассистент‑сообщений (см. detect_status_from_tools).
+  #
+  # Итог: при цепочке "PreToolUse: ExitPlanMode → Notification" остаётся только одно уведомление — Plan Ready.
+  # Во всех прочих Notification остаётся поведение по умолчанию.
+  #
+  # For Notification hook - default is "question", but avoid duplicate after ExitPlanMode
   if [[ "$hook_event" == "Notification" ]]; then
-    log_debug "Notification event → question status"
+    log_debug "Notification event received; duplicate protection with session state + transcript"
+
+    # 1) Try session state first (written by PreToolUse). TTL = 60 seconds.
+    local session_id=$(echo "$hook_data" | jq -r '.session_id // empty')
+    local temp_dir=$(get_temp_dir)
+    local state_file="${temp_dir}/claude-session-state-${session_id}.json"
+    local now_ts=$(get_current_timestamp)
+    if [[ -f "$state_file" ]]; then
+      local last_ts=$(jq -r '.last_ts // 0' "$state_file" 2>/dev/null || echo 0)
+      local last_tool=$(jq -r '.last_interactive_tool // empty' "$state_file" 2>/dev/null || echo "")
+      local age=$((now_ts - last_ts))
+      log_debug "Notification: session state found (tool=$last_tool, age=${age}s)"
+
+      if [[ $age -lt 60 ]]; then
+        if [[ "$last_tool" == "ExitPlanMode" ]]; then
+          log_debug "Notification suppressed by session state: recent ExitPlanMode (<60s)"
+          echo "unknown"
+          return
+        fi
+        if [[ "$last_tool" == "AskUserQuestion" ]]; then
+          # PreToolUse already sent a 'question' notification; suppress Notification duplicate
+          log_debug "Notification suppressed by session state: recent AskUserQuestion (<60s)"
+          echo "unknown"
+          return
+        fi
+      fi
+    fi
+
+    # 2) Fallback: analyze transcript (temporal window) to infer state
+    if [[ -n "$transcript_path" ]] && [[ -f "$transcript_path" ]]; then
+      local transcript=$(cat "$transcript_path" 2>/dev/null || echo "{}")
+      local status_by_tools=$(detect_status_from_tools "$transcript")
+      log_debug "Notification: status by tools = $status_by_tools"
+
+      if [[ "$status_by_tools" == "plan_ready" ]]; then
+        log_debug "Notification suppressed: ExitPlanMode is last tool (plan already notified)"
+        echo "unknown"
+        return
+      fi
+      if [[ "$status_by_tools" == "question" ]]; then
+        echo "question"
+        return
+      fi
+    fi
+
+    # 3) Final fallback: treat as generic question
+    log_debug "Notification fallback → question status"
     echo "question"
     return
   fi

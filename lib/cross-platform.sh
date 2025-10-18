@@ -124,6 +124,15 @@ create_lock_file() {
   touch "$lock_file" 2>/dev/null || true
 }
 
+# Try to acquire an exclusive lock atomically
+# Args: $1 - lock file path
+# Returns: 0 if lock acquired, 1 otherwise
+try_acquire_lock() {
+  local lock_file="$1"
+  # Use bash noclobber to create file exclusively (atomic across processes)
+  ( set -o noclobber; > "$lock_file" ) 2>/dev/null && return 0 || return 1
+}
+
 # Set file modification time to N seconds in the past
 # Args: $1 - file path, $2 - seconds in the past (default: 3)
 # Returns: 0 on success, 1 on failure
@@ -168,4 +177,42 @@ export -f get_current_timestamp
 export -f cleanup_old_files
 export -f is_file_older_than
 export -f create_lock_file
+export -f try_acquire_lock
 export -f set_file_mtime_past
+
+# Convert ISO8601 datetime to Unix epoch seconds (best-effort, cross-platform)
+# Args: $1 - ISO8601 string (e.g., 2025-10-18T10:11:50.275Z)
+# Echoes epoch seconds or empty on failure
+iso_to_epoch() {
+  local iso="$1"
+  local os=$(detect_os)
+
+  if [[ -z "$iso" ]]; then
+    echo ""
+    return
+  fi
+
+  case "$os" in
+    macos)
+      # macOS BSD date supports -j -f with %Y-%m-%dT%H:%M:%S%z but 'Z' is UTC; handle both
+      # Try with milliseconds and Z
+      local epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S.%NZ" "$iso" "+%s" 2>/dev/null || true)
+      if [[ -z "$epoch" ]]; then
+        # Try without milliseconds
+        epoch=$(date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$iso" "+%s" 2>/dev/null || true)
+      fi
+      echo "$epoch"
+      ;;
+    linux|windows)
+      # GNU date usually supports -d
+      # Normalize: replace Z with UTC to help some shells
+      local normalized="${iso/Z/+00:00}"
+      date -d "$normalized" +%s 2>/dev/null || echo ""
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
+
+export -f iso_to_epoch

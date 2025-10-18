@@ -1,5 +1,34 @@
 # Claude Notifications Plugin
 
+## Table of Contents
+
+- [Features](#features)
+- [Notification Statuses](#notification-statuses)
+- [Installation](#installation)
+  - [Quick Install from GitHub](#quick-install-from-github)
+  - [Local Installation (for development)](#local-installation-for-development)
+- [Quick Setup (Recommended)](#quick-setup-recommended)
+- [Manual Setup (Advanced)](#manual-setup-advanced)
+  - [Copy Configuration File](#1-copy-configuration-file)
+  - [Configure Notifications](#2-configure-notifications)
+  - [Configure Sound Files (Optional)](#3-configure-sound-files-optional)
+- [Configuration Options](#configuration-options)
+  - [Desktop Notifications](#desktop-notifications)
+  - [Webhook Notifications](#webhook-notifications)
+  - [Status Customization](#status-customization)
+- [How It Works](#how-it-works)
+  - [Status Detection Logic](#status-detection-logic)
+  - [Summarization](#summarization)
+- [Limitations](#limitations)
+- [Platform Support](#platform-support)
+- [Webhook Integrations](#-webhook-integrations)
+- [Known Issues](#known-issues)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+- [Roadmap](#roadmap)
+
 [![Tests](https://github.com/777genius/claude-notifications/actions/workflows/test.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
@@ -486,7 +515,7 @@ For detailed setup instructions, examples, and troubleshooting, see [Webhook Doc
 **Affected Versions:** Claude Code v2.0.17 - v2.0.21
 **Working Versions:** v2.0.15 and earlier ✅
 
-This is a known bug in Claude Code where hooks are executed multiple times for single events. The plugin includes automatic deduplication to minimize duplicates, but approximately 1-2% of notifications may still appear twice due to race conditions.
+This is a known bug in Claude Code where hooks are executed multiple times for single events. The plugin includes automatic deduplication using an atomic lock to minimize duplicates. In practice, it guarantees at least one notification and eliminates race windows where two processes could both send.
 
 **Why this happens:**
 - Claude Code bug ([#9602](https://github.com/anthropics/claude-code/issues/9602), [#3465](https://github.com/anthropics/claude-code/issues/3465), [#3523](https://github.com/anthropics/claude-code/issues/3523))
@@ -494,10 +523,11 @@ This is a known bug in Claude Code where hooks are executed multiple times for s
 - Duplication increases during long sessions (2x → 4x → 10x+)
 
 **Plugin Protection:**
-The plugin uses two-phase lock-file deduplication to prevent most duplicates:
-- ✅ Catches 98-99% of duplicate hook executions
+The plugin uses an early duplicate check plus an atomic lock acquisition right before sending:
+- ✅ Early duplicate detection without creating a lock (allows retries if a process exits early)
+- ✅ Atomic lock via noclobber to prevent simultaneous send
+- ✅ Stale locks (>2s) are ignored and safely replaced
 - ✅ Guarantees at least 1 notification is sent
-- ⚠️ Small chance (~1-2%) of 2 notifications (better than 0!)
 
 **What you'll see:**
 ```
@@ -509,6 +539,13 @@ The plugin uses two-phase lock-file deduplication to prevent most duplicates:
 **Workaround:**
 - Update to Claude Code v2.0.15 (or wait for fix in future versions)
 - Accept occasional duplicates as a trade-off for reliable notifications
+
+### Summary Text Robustness
+
+Notifications now use improved summary cleaning:
+- Removes markdown headers, list markers, and backticks
+- Flattens newlines, trims, collapses spaces
+- If cleaned summary becomes empty, a status-specific default message is used
 
 ## Troubleshooting
 

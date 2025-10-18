@@ -11,24 +11,24 @@ play_sound() {
   local sound_file="$1"
   local config="$2"
 
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound called with: $sound_file" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound called with: $sound_file" >> "$LOG_FILE" || true
 
   # Check if sound is enabled in config
   local sound_enabled=$(echo "$config" | jq -r '.notifications.desktop.sound // true')
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound enabled in config: $sound_enabled" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound enabled in config: $sound_enabled" >> "$LOG_FILE" || true
   if [[ "$sound_enabled" != "true" ]]; then
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound disabled, returning" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound disabled, returning" >> "$LOG_FILE" || true
     return 0
   fi
 
   # Check if sound file exists
   if [[ ! -f "$sound_file" ]]; then
-    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound file does not exist: $sound_file" >> "$LOG_FILE"
+    [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound file does not exist: $sound_file" >> "$LOG_FILE" || true
     return 0
   fi
 
   local os=$(detect_os)
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Playing sound on OS: $os" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Playing sound on OS: $os" >> "$LOG_FILE" || true
 
   case "$os" in
     macos)
@@ -41,21 +41,25 @@ play_sound() {
       play_sound_windows "$sound_file"
       ;;
     *)
-      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unknown OS, no sound support" >> "$LOG_FILE"
+      [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unknown OS, no sound support" >> "$LOG_FILE" || true
       # No sound support
       return 0
       ;;
   esac
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound completed" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound completed" >> "$LOG_FILE" || true
+
+  return 0
 }
 
 # macOS sound playback using afplay
 play_sound_macos() {
   local sound_file="$1"
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound_macos: afplay $sound_file" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound_macos: afplay $sound_file" >> "$LOG_FILE" || true
   afplay "$sound_file" 2>/dev/null &
   local afplay_pid=$!
-  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] afplay started with PID: $afplay_pid" >> "$LOG_FILE"
+  [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] afplay started with PID: $afplay_pid" >> "$LOG_FILE" || true
+
+  return 0
 }
 
 # Linux sound playback using paplay or aplay
