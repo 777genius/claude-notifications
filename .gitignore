@@ -34,11 +34,10 @@ config/config.json
 test_*.sh
 FINAL_TEST.sh
 *.txt
-demo.txt
-test123.txt
 
 # Notifier setup marker
 .notifier_setup_done
 
 # Auto-downloaded binaries (terminal-notifier)
 bin/terminal-notifier.app/
+terminal-notifier.app/
