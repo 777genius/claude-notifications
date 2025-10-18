@@ -1,3 +1,0 @@
-{"parentUuid":"uuid1","type":"user","message":{"role":"user","content":[{"type":"text","text":"Test"}]}
-{this is not valid json}
-{"parentUuid":"uuid3","type":"assistant","message":{"role":"assistant","content":[{"type":"text",}]}
