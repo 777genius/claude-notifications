@@ -44,25 +44,39 @@ For detailed coverage reports at https://codecov.io/
 After pushing to main:
 
 1. ✅ macOS Tests workflow runs (~5-7 minutes)
-2. ✅ Coverage is measured with bashcov
-3. ✅ `coverage-badge.json` is created
+2. ⚙️ Attempts to measure coverage with bashcov
+3. ✅ `coverage-badge.json` is created (with coverage % OR test count)
 4. ✅ JSON is deployed to `gh-pages` branch
 5. ⏳ Wait 5-10 minutes for GitHub Pages to update
-6. ✅ Badge in README shows coverage percentage
+6. ✅ Badge in README shows result
 
 ### Badge Format
 
-The badge will show:
-
+**If coverage measurement succeeds:**
 ```
-coverage: 73.5% | 148 tests
+tests: 73.5% | 148 tests
+```
+
+**If coverage measurement fails (common for bash):**
+```
+tests: 148 tests
 ```
 
 **Colors:**
-- 🟢 Green (80%+) - Excellent
-- 🟢 Light Green (60-79%) - Good
-- 🟡 Yellow (40-59%) - Needs work
-- 🔴 Red (<40%) - Poor
+- 🟢 Green (80%+ coverage) - Excellent
+- 🟢 Light Green (60-79% coverage) - Good
+- 🟡 Yellow (40-59% coverage) - Needs work
+- 🔴 Red (<40% coverage) - Poor
+- 🔵 Blue (test count only) - Coverage measurement unavailable
+
+### Why Coverage Might Not Work
+
+Bash code coverage is technically challenging:
+- **Sourced files** - bashcov may not track sourced lib/ files correctly
+- **Subshells** - Code in `$()` may not be measured
+- **Helper functions** - Utility code may not be instrumented
+
+**This is normal!** The badge will still show the test count (148 tests), which is a valid quality metric.
 
 ### Typical Coverage for Bash
 

@@ -78,19 +78,20 @@ Smart notifications for Claude Code task statuses with desktop notifications, we
 
 ## Test Coverage
 
-This plugin has comprehensive test coverage with real code coverage metrics:
+This plugin has comprehensive test coverage:
 
 | Metric | Value | Description |
 |--------|-------|-------------|
-| **Code Coverage** | See badge above | Measured with bashcov on macOS |
+| **Coverage/Tests** | See badge above | Code coverage % or test count |
 | **Test Suites** | 12 | Independent test files |
 | **Test Cases** | 148 | Individual test functions |
 | **Source Files** | 10 | Main plugin files (`lib/` + `hooks/`) |
 | **Lines of Code** | 1,319 | Non-comment, non-blank lines |
 
-**Coverage is measured using [bashcov](https://github.com/infertux/bashcov) on macOS runners.** The coverage badge updates automatically after each push to main. All tests run on **macOS**, **Linux**, and **Windows**.
+**About Coverage:**
+We attempt to measure bash code coverage using [bashcov](https://github.com/infertux/bashcov) on macOS. However, bash coverage is technically challenging due to sourcing, subshells, and helper functions. If coverage measurement succeeds, the badge shows the percentage (e.g., "73.5% | 148 tests"). If not, it shows test count only (e.g., "148 tests").
 
-For detailed coverage reports, visit [Codecov Dashboard](https://codecov.io/gh/777genius/claude-notifications). See [Testing Documentation](docs/testing.md) for more details.
+All tests run on **macOS**, **Linux**, and **Windows**. For detailed reports (when coverage works), visit [Codecov Dashboard](https://codecov.io/gh/777genius/claude-notifications). See [Testing Documentation](docs/testing.md) for details.
 
 ## Notification Statuses
 

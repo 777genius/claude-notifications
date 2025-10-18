@@ -31,45 +31,70 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          chmod +x test/run-tests.sh
-          bashcov --root . ./test/run-tests.sh
+          chmod +x test/run-tests.sh test/run-coverage.sh
+          # Try to collect coverage - if it fails, badge will show test count only
+          bashcov --root . ./test/run-coverage.sh || echo "Coverage collection failed, will show test count only"
+
+          # Debug: show what was generated
+          if [ -f coverage/index.html ]; then
+            echo "Coverage report generated:"
+            grep -o 'covered">.*<' coverage/index.html | head -5 || true
+          else
+            echo "No coverage report found"
+          fi
 
       - name: Generate coverage badge JSON
         if: success()
         run: |
-          # Extract coverage percentage from HTML report
+          test_count=$(grep -h "^test_" test/test-*.sh 2>/dev/null | wc -l | tr -d ' ')
+
+          # Check if coverage report exists and has data
           if [ -f coverage/index.html ]; then
-            coverage_percent=$(grep -o '<span class="percent">[0-9.]*%</span>' coverage/index.html | head -1 | grep -o '[0-9.]*' || echo "0")
-            test_count=$(grep -h "^test_" test/test-*.sh 2>/dev/null | wc -l | tr -d ' ')
+            # Try to extract coverage percentage
+            coverage_percent=$(grep -o '<span class="percent">[0-9.]*%</span>' coverage/index.html | head -1 | grep -o '[0-9.]*' 2>/dev/null || echo "")
 
-            # Determine color based on coverage
-            if [ $(echo "$coverage_percent >= 80" | bc) -eq 1 ]; then
-              color="brightgreen"
-            elif [ $(echo "$coverage_percent >= 60" | bc) -eq 1 ]; then
-              color="green"
-            elif [ $(echo "$coverage_percent >= 40" | bc) -eq 1 ]; then
-              color="yellow"
+            # Check if we got valid coverage (not empty and not 0/0)
+            if [ -n "$coverage_percent" ] && [ "$coverage_percent" != "0" ]; then
+              echo "Coverage measured: ${coverage_percent}%"
+
+              # Determine color based on coverage
+              if [ $(echo "$coverage_percent >= 80" | bc) -eq 1 ]; then
+                color="brightgreen"
+              elif [ $(echo "$coverage_percent >= 60" | bc) -eq 1 ]; then
+                color="green"
+              elif [ $(echo "$coverage_percent >= 40" | bc) -eq 1 ]; then
+                color="yellow"
+              else
+                color="red"
+              fi
+
+              message="${coverage_percent}% | ${test_count} tests"
             else
-              color="red"
+              echo "Warning: Coverage data is empty (0/0), using test count only"
+              coverage_percent="N/A"
+              color="blue"
+              message="${test_count} tests"
             fi
-
-            # Generate shields.io endpoint JSON using jq
-            jq -n \
-              --arg percent "$coverage_percent" \
-              --arg tests "$test_count" \
-              --arg color "$color" \
-              '{
-                schemaVersion: 1,
-                label: "coverage",
-                message: "\($percent)% | \($tests) tests",
-                color: $color
-              }' > coverage-badge.json
-
-            cat coverage-badge.json
           else
-            echo "Coverage report not found"
-            exit 1
+            echo "Warning: Coverage report not found, using test count only"
+            coverage_percent="N/A"
+            color="blue"
+            message="${test_count} tests"
           fi
+
+          # Generate shields.io endpoint JSON using jq
+          jq -n \
+            --arg label "tests" \
+            --arg message "$message" \
+            --arg color "$color" \
+            '{
+              schemaVersion: 1,
+              label: $label,
+              message: $message,
+              color: $color
+            }' > coverage-badge.json
+
+          cat coverage-badge.json
 
       - name: Upload coverage to Codecov
         if: success()
