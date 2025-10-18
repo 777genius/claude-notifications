@@ -1,5 +1,8 @@
 # Claude Notifications Plugin
 
+<img width="350" height="239" alt="image" src="https://github.com/user-attachments/assets/42b7a306-f56f-4499-94cf-f3d573416b6d" />
+
+
 ## Table of Contents
 
 - [Features](#features)
