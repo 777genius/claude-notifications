@@ -1,0 +1,39 @@
+{
+    "notifications": {
+        "desktop": {
+            "enabled": true,
+            "sound": true,
+            "appIcon": "${CLAUDE_PLUGIN_ROOT}/claude_icon.png"
+        },
+        "webhook": {
+            "enabled": false,
+            "preset": "slack",
+            "url": "",
+            "chat_id": "",
+            "format": "json",
+            "headers": {}
+        }
+    },
+    "statuses": {
+        "task_complete": {
+            "title": "✅ Task Completed",
+            "sound": "/System/Library/Sounds/Glass.aiff",
+            "keywords": ["completed", "done", "finished", "успешно", "завершен"]
+        },
+        "review_complete": {
+            "title": "🔍 Review Completed",
+            "sound": "/System/Library/Sounds/Ping.aiff",
+            "keywords": ["review", "ревью", "analyzed", "проверка", "analysis"]
+        },
+        "question": {
+            "title": "❓ Claude Has Questions",
+            "sound": "/System/Library/Sounds/Funk.aiff",
+            "keywords": ["question", "вопрос", "clarify"]
+        },
+        "plan_ready": {
+            "title": "📋 Plan Ready for Review",
+            "sound": "/System/Library/Sounds/Hero.aiff",
+            "keywords": ["plan", "план", "strategy"]
+        }
+    }
+}

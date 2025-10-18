@@ -24,7 +24,7 @@ Thumbs.db
 node_modules/
 
 # User configuration (don't commit user-specific settings)
-config/config.json
+# config/config.json
 
 # Keep example configs
 !config/config.json.example
