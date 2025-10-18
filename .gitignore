@@ -39,3 +39,6 @@ test123.txt
 
 # Notifier setup marker
 .notifier_setup_done
+
+# Auto-downloaded binaries (terminal-notifier)
+bin/terminal-notifier.app/
