@@ -9,7 +9,8 @@
       "url": "",
       "format": "json",
       "headers": {}
-    }
+    },
+    "suppressQuestionAfterTaskCompleteSeconds": 7
   },
   "statuses": {
     "task_complete": {

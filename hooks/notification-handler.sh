@@ -43,8 +43,39 @@ main() {
   local hook_data=$(cat)
   log_debug "Hook data received: ${#hook_data} bytes [PID: $$]"
 
-  # Get session ID early for deduplication
-  local session_id=$(echo "$hook_data" | json_get ".session_id" "unknown")
+  # DEBUG: Detailed hook data diagnostics
+  log_debug "=== Hook Data Diagnostics ==="
+  log_debug "Platform: $(detect_os)"
+  log_debug "JSON Backend: $(_json_backend)"
+  log_debug "Hook data content (first 500 chars): ${hook_data:0:500}"
+
+  # Parse and validate each field separately
+  local session_id=$(echo "$hook_data" | json_get ".session_id" "")
+  local transcript_path=$(echo "$hook_data" | json_get ".transcript_path" "")
+  local cwd=$(echo "$hook_data" | json_get ".cwd" "")
+  local tool_name=$(echo "$hook_data" | json_get ".tool_name" "")
+
+  log_debug "Parsed fields:"
+  log_debug "  - session_id: '${session_id}' (${#session_id} chars)"
+  log_debug "  - transcript_path: '${transcript_path}' (${#transcript_path} chars)"
+  log_debug "  - cwd: '${cwd}' (${#cwd} chars)"
+  log_debug "  - tool_name: '${tool_name}' (${#tool_name} chars)"
+
+  # Validate required fields
+  if [[ -z "$session_id" ]]; then
+    log_debug "WARNING: session_id is empty!"
+    session_id="unknown"
+  fi
+
+  if [[ -z "$transcript_path" ]]; then
+    log_debug "WARNING: transcript_path is empty or missing from hook data!"
+    log_debug "This is a known issue on Windows (Claude Code 2.0.x)"
+    log_debug "Plugin will work with limited functionality (no transcript analysis)"
+  fi
+
+  log_debug "=== End Hook Data Diagnostics ==="
+
+  # Get session ID early for deduplication (already parsed above)
 
   # Deduplication: защита от бага Claude Code (versions 2.0.17-2.0.21)
   # Хуки выполняются 2-4 раза для одного события (GitHub issues #9602, #3465, #3523)
@@ -87,12 +118,15 @@ main() {
     exit 0
   fi
 
+  # Cooldown for suppressing question after task completion (seconds)
+  local suppress_q_after_task_secs=$(echo "$config" | json_get ".notifications.suppressQuestionAfterTaskCompleteSeconds" "7")
+
   # Declare status variable
   local status=""
 
   # For PreToolUse - check tool_name (fires BEFORE tool execution)
   if [[ "$hook_event" == "PreToolUse" ]]; then
-    local tool_name=$(echo "$hook_data" | json_get ".tool_name" "")
+    # tool_name is already parsed at the top of main()
     log_debug "PreToolUse: tool_name='$tool_name'"
 
     if [[ "$tool_name" == "ExitPlanMode" ]]; then
@@ -104,9 +138,8 @@ main() {
       # Docs: https://docs.claude.com/en/docs/claude-code/hooks-guide#custom-notification-hook
       local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
       local now_ts=$(get_current_timestamp)
-      local hook_session_id=$(echo "$hook_data" | json_get ".session_id" "")
-      local hook_cwd=$(echo "$hook_data" | json_get ".cwd" "")
-      local state_json=$(json_build session_id "$hook_session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$hook_cwd")
+      # Use already parsed values instead of re-parsing
+      local state_json=$(json_build session_id "$session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$cwd")
       echo "$state_json" > "$state_file"
       log_debug "PreToolUse: session state written to $state_file"
     elif [[ "$tool_name" == "AskUserQuestion" ]]; then
@@ -116,9 +149,8 @@ main() {
       # Persist interactive state for AskUserQuestion as well
       local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
       local now_ts=$(get_current_timestamp)
-      local hook_session_id=$(echo "$hook_data" | json_get ".session_id" "")
-      local hook_cwd=$(echo "$hook_data" | json_get ".cwd" "")
-      local state_json=$(json_build session_id "$hook_session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$hook_cwd")
+      # Use already parsed values instead of re-parsing
+      local state_json=$(json_build session_id "$session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$cwd")
       echo "$state_json" > "$state_file"
       log_debug "PreToolUse: session state written to $state_file"
     else
@@ -135,11 +167,44 @@ main() {
     # Skip unknown and generic notification statuses
     if [[ "$status" == "unknown" ]] || [[ "$status" == "notification" ]]; then
       log_debug "Status is $status, skipping notification"
+      # Output message to prevent "Plugin hook error" in Claude Code
+      echo "[claude-notifications] Skipped: insufficient data (status=$status, transcript_path=${transcript_path:-empty})" >&2
       exit 0
     fi
   fi
 
   log_debug "Processing status: $status"
+
+  # Update session state on task completion
+  if [[ "$status" == "task_complete" ]]; then
+    local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
+    local now_ts=$(get_current_timestamp)
+    local prev_tool=""
+    local prev_ts="0"
+    if [[ -f "$state_file" ]]; then
+      prev_tool=$(cat "$state_file" | json_get ".last_interactive_tool" "")
+      prev_ts=$(cat "$state_file" | json_get ".last_ts" "0")
+    fi
+    local state_json=$(json_build session_id "$session_id" last_interactive_tool "$prev_tool" last_ts "$prev_ts" last_task_complete_ts "$now_ts" cwd "$hook_cwd_val")
+    echo "$state_json" > "$state_file"
+    log_debug "Recorded last_task_complete_ts=$now_ts in $state_file"
+  fi
+
+  # Suppress question if within cooldown window after recent task completion
+  if [[ "$status" == "question" ]]; then
+    local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
+    if [[ -f "$state_file" ]]; then
+      local last_tc=$(cat "$state_file" | json_get ".last_task_complete_ts" "0")
+      if [[ "$last_tc" =~ ^[0-9]+$ ]] && [[ "$suppress_q_after_task_secs" =~ ^[0-9]+$ ]]; then
+        local now_ts=$(get_current_timestamp)
+        local diff=$((now_ts - last_tc))
+        if [[ $last_tc -gt 0 ]] && [[ $diff -lt $suppress_q_after_task_secs ]]; then
+          log_debug "Question suppressed: task_complete ${diff}s ago (< ${suppress_q_after_task_secs}s)"
+          exit 0
+        fi
+      fi
+    fi
+  fi
 
   # === Все early exits пройдены — пытаемся атомарно захватить lock ===
   if try_acquire_lock "$LOCK_FILE"; then
@@ -165,11 +230,8 @@ main() {
     fi
   fi
 
-  # Get transcript path, session ID, and working directory
-  local transcript_path=$(echo "$hook_data" | json_get ".transcript_path" "")
-  local session_id=$(echo "$hook_data" | json_get ".session_id" "unknown")
-  local cwd=$(echo "$hook_data" | json_get ".cwd" "")
-  log_debug "Transcript path: $transcript_path"
+  # Note: transcript_path, session_id, and cwd are already parsed at the top of main()
+  log_debug "Using parsed values: transcript_path='$transcript_path', session_id='$session_id', cwd='$cwd'"
 
   # Generate summary with status context
   local summary=$(generate_summary "$transcript_path" "$hook_data" "$status")
