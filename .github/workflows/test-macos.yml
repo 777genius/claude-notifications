@@ -53,15 +53,18 @@ jobs:
               color="red"
             fi
 
-            # Generate shields.io endpoint JSON
-            cat > coverage-badge.json <<EOF
-{
-  "schemaVersion": 1,
-  "label": "coverage",
-  "message": "${coverage_percent}% | ${test_count} tests",
-  "color": "${color}"
-}
-EOF
+            # Generate shields.io endpoint JSON using jq
+            jq -n \
+              --arg percent "$coverage_percent" \
+              --arg tests "$test_count" \
+              --arg color "$color" \
+              '{
+                schemaVersion: 1,
+                label: "coverage",
+                message: "\($percent)% | \($tests) tests",
+                color: $color
+              }' > coverage-badge.json
+
             cat coverage-badge.json
           else
             echo "Coverage report not found"
