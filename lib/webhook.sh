@@ -1,6 +1,10 @@
 #!/bin/bash
 # webhook.sh - Send webhook notifications
 
+# Source JSON parser
+_WEBHOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${_WEBHOOK_DIR}/json-parser.sh"
+
 # Send webhook notification
 # Args: $1 - status, $2 - message, $3 - session_id, $4 - config JSON
 send_webhook() {
@@ -10,28 +14,28 @@ send_webhook() {
   local config="$4"
 
   # Check if webhook is enabled
-  local enabled=$(echo "$config" | jq -r '.notifications.webhook.enabled // false')
+  local enabled=$(echo "$config" | json_get ".notifications.webhook.enabled" "false")
   if [[ "$enabled" != "true" ]]; then
     return 0
   fi
 
   # Get webhook URL
-  local url=$(echo "$config" | jq -r '.notifications.webhook.url // empty')
+  local url=$(echo "$config" | json_get ".notifications.webhook.url" "")
   if [[ -z "$url" ]]; then
     return 0
   fi
 
   # Get format (text or json)
-  local format=$(echo "$config" | jq -r '.notifications.webhook.format // "text"')
+  local format=$(echo "$config" | json_get ".notifications.webhook.format" "text")
 
-  # Get custom headers
-  local headers=$(echo "$config" | jq -r '.notifications.webhook.headers // {}')
+  # Get custom headers (returns JSON object)
+  local headers=$(echo "$config" | json_get ".notifications.webhook.headers" "{}")
 
   # Get preset (slack, discord, telegram, custom)
-  local preset=$(echo "$config" | jq -r '.notifications.webhook.preset // "custom"')
+  local preset=$(echo "$config" | json_get ".notifications.webhook.preset" "custom")
 
   # Get chat_id (required for Telegram)
-  local chat_id=$(echo "$config" | jq -r '.notifications.webhook.chat_id // ""')
+  local chat_id=$(echo "$config" | json_get ".notifications.webhook.chat_id" "")
 
   # Send webhook in background to avoid blocking
   send_webhook_async "$url" "$format" "$status" "$message" "$session_id" "$headers" "$preset" "$chat_id" &
@@ -60,7 +64,7 @@ send_webhook_async() {
       if [[ -n "$header_line" ]]; then
         curl_header_args+=(-H "$header_line")
       fi
-    done < <(echo "$headers" | jq -r 'to_entries[] | "\(.key): \(.value)"')
+    done < <(echo "$headers" | json_to_entries)
   fi
 
   # Build JSON payload based on preset
@@ -70,13 +74,13 @@ send_webhook_async() {
     "slack")
       # Slack Incoming Webhooks
       # Docs: https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks
-      json_data=$(jq -n --arg text "$message" '{text: $text}')
+      json_data=$(json_build text "$message")
       ;;
 
     "discord")
       # Discord Webhooks
       # Docs: https://birdie0.github.io/discord-webhooks-guide/
-      json_data=$(jq -n --arg content "$message" '{content: $content, username: "Claude Code"}')
+      json_data=$(json_build content "$message" username "Claude Code")
       ;;
 
     "telegram")
@@ -86,7 +90,7 @@ send_webhook_async() {
         log_debug "Telegram webhook error: chat_id is required"
         return 1
       fi
-      json_data=$(jq -n --arg chat_id "$chat_id" --arg text "$message" '{chat_id: $chat_id, text: $text}')
+      json_data=$(json_build chat_id "$chat_id" text "$message")
       ;;
 
     "custom"|*)
@@ -96,18 +100,12 @@ send_webhook_async() {
         json_data=""
       else
         # JSON format (default)
-        json_data=$(jq -n \
-          --arg status "$status" \
-          --arg message "$message" \
-          --arg timestamp "$timestamp" \
-          --arg session_id "$session_id" \
-          '{
-            status: $status,
-            message: $message,
-            timestamp: $timestamp,
-            session_id: $session_id,
-            source: "claude-notifications"
-          }')
+        json_data=$(json_build \
+          status "$status" \
+          message "$message" \
+          timestamp "$timestamp" \
+          session_id "$session_id" \
+          source "claude-notifications")
       fi
       ;;
   esac

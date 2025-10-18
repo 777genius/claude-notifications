@@ -4,6 +4,7 @@
 # Source platform detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/platform.sh"
+source "${SCRIPT_DIR}/json-parser.sh"
 
 # Play sound file
 # Args: $1 - sound file path, $2 - config JSON
@@ -14,7 +15,7 @@ play_sound() {
   [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] play_sound called with: $sound_file" >> "$LOG_FILE" || true
 
   # Check if sound is enabled in config
-  local sound_enabled=$(echo "$config" | jq -r '.notifications.desktop.sound // true')
+  local sound_enabled=$(echo "$config" | json_get ".notifications.desktop.sound" "true")
   [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound enabled in config: $sound_enabled" >> "$LOG_FILE" || true
   if [[ "$sound_enabled" != "true" ]]; then
     [[ -n "${LOG_FILE:-}" ]] && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sound disabled, returning" >> "$LOG_FILE" || true

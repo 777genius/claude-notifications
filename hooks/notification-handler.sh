@@ -26,6 +26,7 @@ set -eu
 # Source all library functions
 source "${PLUGIN_DIR}/lib/platform.sh"
 source "${PLUGIN_DIR}/lib/cross-platform.sh"
+source "${PLUGIN_DIR}/lib/json-parser.sh"
 source "${PLUGIN_DIR}/lib/analyzer.sh"
 source "${PLUGIN_DIR}/lib/summarizer.sh"
 source "${PLUGIN_DIR}/lib/notifier.sh"
@@ -43,7 +44,7 @@ main() {
   log_debug "Hook data received: ${#hook_data} bytes [PID: $$]"
 
   # Get session ID early for deduplication
-  local session_id=$(echo "$hook_data" | jq -r '.session_id // "unknown"')
+  local session_id=$(echo "$hook_data" | json_get ".session_id" "unknown")
 
   # Deduplication: защита от бага Claude Code (versions 2.0.17-2.0.21)
   # Хуки выполняются 2-4 раза для одного события (GitHub issues #9602, #3465, #3523)
@@ -75,11 +76,11 @@ main() {
   fi
 
   # Check if desktop notifications are enabled
-  local desktop_enabled=$(echo "$config" | jq -r '.notifications.desktop.enabled // true')
+  local desktop_enabled=$(echo "$config" | json_get ".notifications.desktop.enabled" "true")
   log_debug "Desktop notifications enabled: $desktop_enabled"
 
   # Only proceed if at least one notification method is enabled
-  local webhook_enabled=$(echo "$config" | jq -r '.notifications.webhook.enabled // false')
+  local webhook_enabled=$(echo "$config" | json_get ".notifications.webhook.enabled" "false")
   log_debug "Webhook enabled: $webhook_enabled"
   if [[ "$desktop_enabled" != "true" ]] && [[ "$webhook_enabled" != "true" ]]; then
     log_debug "All notifications disabled, exiting"
@@ -91,7 +92,7 @@ main() {
 
   # For PreToolUse - check tool_name (fires BEFORE tool execution)
   if [[ "$hook_event" == "PreToolUse" ]]; then
-    local tool_name=$(echo "$hook_data" | jq -r '.tool_name // empty')
+    local tool_name=$(echo "$hook_data" | json_get ".tool_name" "")
     log_debug "PreToolUse: tool_name='$tool_name'"
 
     if [[ "$tool_name" == "ExitPlanMode" ]]; then
@@ -103,7 +104,9 @@ main() {
       # Docs: https://docs.claude.com/en/docs/claude-code/hooks-guide#custom-notification-hook
       local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
       local now_ts=$(get_current_timestamp)
-      local state_json=$(echo "$hook_data" | jq -c --arg tool "$tool_name" --argjson ts "$now_ts" '{session_id: .session_id, last_interactive_tool: $tool, last_ts: $ts, cwd: .cwd}')
+      local hook_session_id=$(echo "$hook_data" | json_get ".session_id" "")
+      local hook_cwd=$(echo "$hook_data" | json_get ".cwd" "")
+      local state_json=$(json_build session_id "$hook_session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$hook_cwd")
       echo "$state_json" > "$state_file"
       log_debug "PreToolUse: session state written to $state_file"
     elif [[ "$tool_name" == "AskUserQuestion" ]]; then
@@ -113,7 +116,9 @@ main() {
       # Persist interactive state for AskUserQuestion as well
       local state_file="${TEMP_DIR}/claude-session-state-${session_id}.json"
       local now_ts=$(get_current_timestamp)
-      local state_json=$(echo "$hook_data" | jq -c --arg tool "$tool_name" --argjson ts "$now_ts" '{session_id: .session_id, last_interactive_tool: $tool, last_ts: $ts, cwd: .cwd}')
+      local hook_session_id=$(echo "$hook_data" | json_get ".session_id" "")
+      local hook_cwd=$(echo "$hook_data" | json_get ".cwd" "")
+      local state_json=$(json_build session_id "$hook_session_id" last_interactive_tool "$tool_name" last_ts "$now_ts" cwd "$hook_cwd")
       echo "$state_json" > "$state_file"
       log_debug "PreToolUse: session state written to $state_file"
     else
@@ -161,9 +166,9 @@ main() {
   fi
 
   # Get transcript path, session ID, and working directory
-  local transcript_path=$(echo "$hook_data" | jq -r '.transcript_path // empty')
-  local session_id=$(echo "$hook_data" | jq -r '.session_id // "unknown"')
-  local cwd=$(echo "$hook_data" | jq -r '.cwd // empty')
+  local transcript_path=$(echo "$hook_data" | json_get ".transcript_path" "")
+  local session_id=$(echo "$hook_data" | json_get ".session_id" "unknown")
+  local cwd=$(echo "$hook_data" | json_get ".cwd" "")
   log_debug "Transcript path: $transcript_path"
 
   # Generate summary with status context
@@ -176,9 +181,9 @@ main() {
   log_debug "Summary generated: ${summary:0:50}..."
 
   # Get status configuration
-  local status_title=$(echo "$config" | jq -r ".statuses.${status}.title // \"Claude Code\"")
-  local sound_file=$(echo "$config" | jq -r ".statuses.${status}.sound // empty")
-  local app_icon=$(echo "$config" | jq -r ".notifications.desktop.appIcon // empty")
+  local status_title=$(echo "$config" | json_get ".statuses.${status}.title" "Claude Code")
+  local sound_file=$(echo "$config" | json_get ".statuses.${status}.sound" "")
+  local app_icon=$(echo "$config" | json_get ".notifications.desktop.appIcon" "")
 
   # Generate friendly session name and add to title
   local session_name=$(generate_session_name "$session_id")
