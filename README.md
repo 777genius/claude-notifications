@@ -75,6 +75,7 @@ Smart notifications for Claude Code task statuses with desktop notifications, we
 - 🎯 **Smart Status Detection** - Automatically detects task completion, reviews, questions, and plan readiness
 - 📝 **Auto Summarization** - Generates concise summaries of completed tasks
 - 🔧 **Highly Configurable** - Customize everything through a simple JSON config
+- 🚀 **Zero Dependencies** - Works out-of-the-box on Windows without installing jq (uses built-in PowerShell)
 
 ## Test Coverage
 
@@ -83,13 +84,13 @@ This plugin has comprehensive test coverage:
 | Metric | Value | Description |
 |--------|-------|-------------|
 | **Coverage/Tests** | See badge above | Code coverage % or test count |
-| **Test Suites** | 12 | Independent test files |
-| **Test Cases** | 148 | Individual test functions |
+| **Test Suites** | 13 | Independent test files |
+| **Test Cases** | 228 | Individual test functions |
 | **Source Files** | 10 | Main plugin files (`lib/` + `hooks/`) |
-| **Lines of Code** | 1,319 | Non-comment, non-blank lines |
+| **Lines of Code** | 1,700+ | Non-comment, non-blank lines |
 
 **About Coverage:**
-We attempt to measure bash code coverage using [bashcov](https://github.com/infertux/bashcov) on macOS. However, bash coverage is technically challenging due to sourcing, subshells, and helper functions. If coverage measurement succeeds, the badge shows the percentage (e.g., "73.5% | 148 tests"). If not, it shows test count only (e.g., "148 tests").
+We attempt to measure bash code coverage using [bashcov](https://github.com/infertux/bashcov) on macOS. However, bash coverage is technically challenging due to sourcing, subshells, and helper functions. If coverage measurement succeeds, the badge shows the percentage (e.g., "73.5% | 228 tests"). If not, it shows test count only (e.g., "228 tests").
 
 All tests run on **macOS**, **Linux**, and **Windows**. For detailed reports (when coverage works), visit [Codecov Dashboard](https://codecov.io/gh/777genius/claude-notifications). See [Testing Documentation](docs/testing.md) for details.
 
@@ -496,11 +497,24 @@ These features only work on macOS but don't affect core functionality on other p
 ### Requirements
 
 **All Platforms:**
-- **jq** - Required for JSON parsing
+- **No mandatory dependencies!** 🎉
+  - The plugin automatically detects and uses available JSON parsers
+  - Works out-of-the-box on Windows (uses built-in PowerShell)
+
+**Optional (Recommended for Performance):**
+- **jq** - Faster JSON parsing (recommended but not required)
   - macOS: `brew install jq`
   - Linux: `apt install jq` or `yum install jq`
   - Windows: Download from [jqlang.github.io](https://jqlang.github.io/jq/)
   - Verify: `jq --version`
+
+**Automatic JSON Parser Selection:**
+
+The plugin automatically selects the best available parser in this order:
+1. **jq** (fastest, ~50% faster than alternatives)
+2. **PowerShell** (Windows built-in via `ConvertFrom-Json`)
+3. **python3/python** (fallback)
+4. **ruby** (fallback)
 
 **Linux-Specific:**
 - **notify-send** (usually pre-installed with desktop environments)
@@ -509,7 +523,7 @@ These features only work on macOS but don't affect core functionality on other p
 
 **Windows-Specific:**
 - **Git Bash** or **WSL** (Windows Subsystem for Linux)
-- PowerShell 5.0+ (pre-installed on Windows 10+)
+- **PowerShell 5.0+** (pre-installed on Windows 10+, used for JSON parsing)
 
 ## 🔔 Webhook Integrations
 
