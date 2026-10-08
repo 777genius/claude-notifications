@@ -1,3 +1,5 @@
+Please use new version: https://github.com/777genius/agent-notifications
+
 # Claude Notifications Plugin
 
 [![macOS Tests](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml/badge.svg)](https://github.com/777genius/claude-notifications/actions/workflows/test-macos.yml)
